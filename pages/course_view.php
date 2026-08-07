@@ -157,35 +157,35 @@ require_once '../components/header.php';
 ?>
 
 <div class="container main-content">
-    <div class="page-header">
+    <div class="page-header course-hero">
         <div>
             <h2><i class="uil uil-book-open"></i> <?php echo htmlspecialchars($course['title']); ?></h2>
-            <p style="color:var(--text-muted); margin-top:0.5rem; max-width:800px;">
-                <?php echo nl2br(htmlspecialchars($course['description'])); ?>
-            </p>
-            <div style="margin-top:0.75rem; display:flex; flex-wrap:wrap; gap:0.45rem; align-items:center;">
-                <span style="color:var(--text-muted); font-size:0.85rem;"><i class="uil uil-building"></i> Rombel:</span>
+            <?php if (trim((string)$course['description']) !== ''): ?>
+            <p class="course-desc"><?php echo nl2br(htmlspecialchars($course['description'])); ?></p>
+            <?php endif; ?>
+            <div class="course-meta-row">
+                <span style="color:var(--text-muted); font-size:0.82rem; white-space:nowrap;"><i class="uil uil-building"></i> Rombel</span>
+                <div class="rombel-chips">
                 <?php if (!empty($linked_class_names)): ?>
                     <?php foreach ($linked_class_names as $cn): ?>
-                        <span style="background:rgba(99,102,241,0.18); color:#a5b4fc; padding:0.2rem 0.65rem; border-radius:12px; font-size:0.8rem;">
-                            <?php echo htmlspecialchars($cn); ?>
-                        </span>
+                        <span class="rombel-chip"><?php echo htmlspecialchars($cn); ?></span>
                     <?php endforeach; ?>
                 <?php else: ?>
-                    <span style="color:var(--text-muted); font-size:0.85rem;">Belum ada rombel terhubung</span>
+                    <span style="color:var(--text-muted); font-size:0.82rem;">Belum ada rombel terhubung</span>
                 <?php endif; ?>
+                </div>
                 <button type="button" onclick="document.getElementById('modalCourseClasses').classList.add('active')"
-                    class="btn btn-secondary btn-sm" style="padding:0.25rem 0.7rem;" title="Kelola rombel course">
+                    class="btn btn-secondary btn-sm" style="padding:0.3rem 0.75rem; flex:0 0 auto;" title="Kelola rombel course">
                     <i class="uil uil-edit"></i> Kelola Kelas
                 </button>
             </div>
         </div>
         <div class="page-actions">
-            <button type="button" onclick="document.getElementById('modalAddModule').classList.add('active')" class="btn btn-primary" style="box-shadow:0 4px 15px rgba(79, 70, 229, 0.4);">
+            <button type="button" onclick="document.getElementById('modalAddModule').classList.add('active')" class="btn btn-primary">
                 <i class="uil uil-layer-group"></i> Buat Modul Baru
             </button>
             <a href="manage_courses.php" class="btn btn-secondary">
-                <i class="uil uil-arrow-left"></i> Kembali ke Daftar
+                <i class="uil uil-arrow-left"></i> Kembali
             </a>
         </div>
     </div>
@@ -194,15 +194,14 @@ require_once '../components/header.php';
 
     <div class="grid course-layout-grid">
         <!-- Area Kurikulum (Modul & Materi) -->
-        <div>
+        <div class="course-panel">
             <!-- Assignments List First -->
-            <div class="glass-card" style="margin-bottom:2rem;">
-                <div class="page-header" style="margin-bottom:1rem; border-bottom:1px solid rgba(255,255,255,0.1); padding-bottom:1rem;">
-                    <h3 style="margin:0;"><i class="uil uil-clipboard-notes"
-                            style="color:var(--warning); margin-right:0.5rem;"></i> Penugasan / Ulangan</h3>
+            <div class="glass-card">
+                <div class="section-head">
+                    <h3><i class="uil uil-clipboard-notes" style="color:var(--warning); margin-right:0.35rem;"></i> Penugasan / Ulangan</h3>
                     <div class="page-actions">
-                    <a href="add_assignment.php?course_id=<?php echo $course_id; ?>" class="btn btn-primary"
-                        style="padding:0.4rem 1rem; font-size:0.9rem; background:var(--warning); border:none; box-shadow:0 4px 15px rgba(245, 158, 11, 0.4);">
+                    <a href="add_assignment.php?course_id=<?php echo $course_id; ?>" class="btn btn-primary btn-sm"
+                        style="background:var(--warning); border:none;">
                         <i class="uil uil-plus"></i> Buat Tugas
                     </a>
                     </div>
@@ -243,24 +242,21 @@ require_once '../components/header.php';
                         <?php endwhile; ?>
                     </ul>
                 <?php else: ?>
-                    <p style="color:var(--text-muted); font-size:0.9rem; font-style:italic;">Belum ada Ulangan / Tugas yang
-                        dirancang.</p>
+                    <p style="color:var(--text-muted); font-size:0.9rem; margin:0;">Belum ada Ulangan / Tugas yang dirancang.</p>
                 <?php endif; ?>
             </div>
 
             <!-- Modules List -->
             <?php if (empty($modules)): ?>
-                <div class="glass-card" style="text-align:center; padding:3rem; border:1px dashed var(--border);">
-                    <i class="uil uil-layer-group" style="font-size:3rem; color:var(--text-muted);"></i>
+                <div class="glass-card empty-state-card">
+                    <i class="uil uil-layer-group"></i>
                     <h3>Belum ada Bab Konsep</h3>
-                    <p style="color:var(--text-muted); margin-bottom:1.5rem;">Buat "Modul Baru" di panel sisi kanan untuk
-                        menampung RPP materi Anda.</p>
+                    <p>Buat modul baru untuk menampung materi / RPP course ini.</p>
                 </div>
             <?php else: ?>
                 <?php foreach ($modules as $mod): ?>
-                    <div class="glass-card" style="margin-bottom:1.5rem; padding:1.5rem;">
-                        <div
-                            style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem; border-bottom:1px solid rgba(255,255,255,0.1); padding-bottom:1rem;">
+                    <div class="glass-card">
+                        <div class="section-head">
                             <h3 style="margin:0;"><i class="uil uil-layer-group"
                                     style="color:var(--primary); margin-right:0.5rem;"></i>
                                 <span id="mod_title_<?php echo $mod['id']; ?>" style="<?php echo !$mod['is_published'] ? 'opacity:0.5;' : ''; ?>">
@@ -363,60 +359,57 @@ require_once '../components/header.php';
             <?php endif; ?>
         </div>
 
-        <!-- Sidebar Kanan untuk Class LEADERBOARD -->
+        <!-- Sidebar Kanan: Papan Progres -->
         <div>
-            <div class="glass-card" style="position:sticky; top:100px; max-height:calc(100vh - 120px); display:flex; flex-direction:column; padding:1.5rem;">
-                <h4 style="margin-bottom:0.8rem; border-bottom:1px solid rgba(255,255,255,0.1); padding-bottom:0.8rem;"><i class="uil uil-analytics"></i> Papan Progres Siswa</h4>
+            <div class="glass-card progress-board">
+                <h4 class="progress-board-title"><i class="uil uil-analytics"></i> Papan Progres Siswa</h4>
 
-                <form method="GET" action="course_view.php" style="margin-bottom:0.75rem;">
+                <form method="GET" action="course_view.php" style="margin:0;">
                     <input type="hidden" name="id" value="<?php echo $course_id; ?>">
-                    <div style="display:flex; gap:0.4rem;">
+                    <div class="progress-search">
                         <input type="text" name="q" value="<?php echo htmlspecialchars($search_q); ?>"
                             placeholder="Cari nama / NISN..."
-                            class="form-control"
-                            style="flex:1; padding:0.45rem 0.7rem; font-size:0.85rem;">
-                        <button type="submit" class="btn btn-secondary btn-sm" title="Cari siswa" style="padding:0.45rem 0.7rem;">
+                            class="form-control">
+                        <button type="submit" class="btn btn-secondary btn-sm" title="Cari siswa">
                             <i class="uil uil-search"></i>
                         </button>
                         <?php if ($search_q !== ''): ?>
-                            <a href="course_view.php?id=<?php echo $course_id; ?>" class="btn btn-secondary btn-sm" title="Reset pencarian" style="padding:0.45rem 0.7rem;">
+                            <a href="course_view.php?id=<?php echo $course_id; ?>" class="btn btn-secondary btn-sm" title="Reset pencarian">
                                 <i class="uil uil-times"></i>
                             </a>
                         <?php endif; ?>
                     </div>
-                    <small style="color:var(--text-muted); font-size:0.75rem;">
+                    <small style="color:var(--text-muted); font-size:0.75rem; display:block; margin-top:0.4rem;">
                         <?php echo (int)$total_students_val; ?> siswa
                         <?php echo $search_q !== '' ? ' ditemukan' : ' terdaftar'; ?>
                     </small>
                 </form>
 
-                <form action="../actions/add_student_to_course.php" method="POST" style="margin-bottom:0.9rem; padding:0.7rem; background:rgba(16,185,129,0.08); border:1px solid rgba(16,185,129,0.2); border-radius:var(--radius-sm);">
+                <form action="../actions/add_student_to_course.php" method="POST" class="progress-add">
                     <input type="hidden" name="course_id" value="<?php echo $course_id; ?>">
                     <input type="hidden" name="page" value="<?php echo $page_num; ?>">
                     <input type="hidden" name="q" value="<?php echo htmlspecialchars($search_q); ?>">
                     <label style="display:block; font-size:0.78rem; color:var(--text-muted); margin-bottom:0.35rem;">
                         <i class="uil uil-user-plus"></i> Tambah siswa (NISN)
                     </label>
-                    <div style="display:flex; gap:0.4rem;">
+                    <div class="progress-add-row">
                         <input type="text" name="nisn" class="form-control" placeholder="Masukkan NISN"
-                            required inputmode="numeric" autocomplete="off"
-                            style="flex:1; padding:0.45rem 0.7rem; font-size:0.85rem;">
+                            required inputmode="numeric" autocomplete="off">
                         <button type="submit" class="btn btn-primary btn-sm" title="Tambahkan siswa ke course"
-                            style="padding:0.45rem 0.7rem; background:#10b981; border:none;">
+                            style="background:#10b981; border:none; padding:0.5rem 0.7rem;">
                             <i class="uil uil-plus"></i>
                         </button>
                     </div>
                 </form>
                 
-                <div style="overflow-y:auto; flex:1; padding-right:0.5rem;" class="custom-scrollbar">
+                <div class="progress-list">
                     <?php if(empty($students_progress)): ?>
-                        <div style="text-align:center; padding:2rem 0; color:var(--text-muted);">
-                            <i class="uil uil-users-alt" style="font-size:3rem; margin-bottom:1rem; display:block;"></i>
-                            <p style="font-size:0.9rem;"><?php echo $search_q !== '' ? 'Tidak ada siswa yang cocok dengan pencarian.' : 'Belum ada siswa terdaftar pada kelas ini.'; ?></p>
+                        <div style="text-align:center; padding:1.5rem 0; color:var(--text-muted);">
+                            <i class="uil uil-users-alt" style="font-size:2.4rem; margin-bottom:0.6rem; display:block;"></i>
+                            <p style="font-size:0.88rem; margin:0;"><?php echo $search_q !== '' ? 'Tidak ada siswa yang cocok dengan pencarian.' : 'Belum ada siswa terdaftar pada kelas ini.'; ?></p>
                         </div>
                     <?php else: ?>
                         <?php $qsKeep = $search_q !== '' ? '&q=' . urlencode($search_q) : ''; ?>
-                        <div style="display:flex; flex-direction:column; gap:0.8rem;">
                             <?php foreach($students_progress as $sp): 
                                 $completed = (int)$sp['completed_count'];
                                 $percent = $all_lesson_count > 0 ? round(($completed / $all_lesson_count) * 100) : 0;
@@ -434,29 +427,26 @@ require_once '../components/header.php';
                                 role="button"
                                 tabindex="0"
                                 title="Lihat detail progres materi"
-                                data-student-id="<?php echo (int)$sp['id']; ?>"
-                                style="display:flex; align-items:center; gap:0.6rem; background:rgba(0,0,0,0.2); padding:0.7rem; border-radius:var(--radius-sm); border:1px solid rgba(255,255,255,0.05); transition:background 0.3s; cursor:pointer;"
-                                onmouseover="this.style.background='rgba(0,0,0,0.4)';"
-                                onmouseout="this.style.background='rgba(0,0,0,0.2)';">
-                                <img src="<?php echo htmlspecialchars($pic_url); ?>" alt="Avatar" style="width:40px; height:40px; border-radius:50%; object-fit:cover; border:2px solid <?php echo $bar_color; ?>;">
+                                data-student-id="<?php echo (int)$sp['id']; ?>">
+                                <img src="<?php echo htmlspecialchars($pic_url); ?>" alt="Avatar" style="width:38px; height:38px; border-radius:50%; object-fit:cover; border:2px solid <?php echo $bar_color; ?>; flex-shrink:0;">
                                 
                                 <div style="flex:1; min-width:0;" title="<?php echo $completed; ?> / <?php echo $all_lesson_count; ?> Topik Diselesaikan">
                                     <div style="display:flex; justify-content:space-between; margin-bottom:0.3rem; gap:0.4rem;">
                                         <div style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
-                                            <strong style="color:var(--text-main); font-size:0.9rem;"><?php echo htmlspecialchars($sp['name']); ?></strong>
+                                            <strong style="color:var(--text-main); font-size:0.88rem;"><?php echo htmlspecialchars($sp['name']); ?></strong>
                                             <div style="color:var(--text-muted); font-size:0.72rem;"><?php echo htmlspecialchars($sp['username']); ?></div>
                                         </div>
-                                        <div style="font-size:0.85rem; font-weight:700; color:<?php echo $bar_color; ?>; padding-left:0.3rem;">
+                                        <div style="font-size:0.82rem; font-weight:700; color:<?php echo $bar_color; ?>; padding-left:0.3rem; flex-shrink:0;">
                                             <?php echo $percent; ?>%
                                         </div>
                                     </div>
                                     
-                                    <div style="width:100%; height:6px; background:rgba(255,255,255,0.15); border-radius:10px; overflow:hidden; box-shadow:inset 0 1px 2px rgba(0,0,0,0.3);">
-                                        <div style="width:<?php echo $percent; ?>%; height:100%; background:<?php echo $bar_color; ?>; border-radius:10px; transition:width 1s cubic-bezier(0.4, 0, 0.2, 1); box-shadow:0 0 8px <?php echo $bar_color; ?>88;"></div>
+                                    <div style="width:100%; height:5px; background:rgba(255,255,255,0.12); border-radius:10px; overflow:hidden;">
+                                        <div style="width:<?php echo $percent; ?>%; height:100%; background:<?php echo $bar_color; ?>; border-radius:10px;"></div>
                                     </div>
                                 </div>
 
-                                <div class="student-row-actions" style="display:flex; flex-direction:column; gap:0.25rem;">
+                                <div class="student-row-actions">
                                     <form action="../actions/reset_student_progress.php" method="POST" style="margin:0;"
                                         data-confirm="Reset semua progres materi, kuis, dan pengumpulan tugas siswa ini pada course ini?">
                                         <input type="hidden" name="course_id" value="<?php echo $course_id; ?>">
@@ -487,23 +477,22 @@ require_once '../components/header.php';
                             <?php endforeach; ?>
                             
                             <?php if($total_pages > 1): ?>
-                                <div style="display:flex; justify-content:space-between; align-items:center; margin-top:0.5rem; padding-top:0.5rem; border-top:1px solid rgba(255,255,255,0.05);">
+                                <div style="display:flex; justify-content:space-between; align-items:center; margin-top:0.35rem; padding-top:0.55rem; border-top:1px solid rgba(255,255,255,0.06);">
                                     <?php if($page_num > 1): ?>
-                                        <a href="course_view.php?id=<?php echo $course_id; ?>&page=<?php echo $page_num-1; ?><?php echo $qsKeep; ?>" class="btn btn-secondary btn-sm" style="padding:0.2rem 0.5rem; display:flex; align-items:center;"><i class="uil uil-angle-left"></i> Mundur</a>
+                                        <a href="course_view.php?id=<?php echo $course_id; ?>&page=<?php echo $page_num-1; ?><?php echo $qsKeep; ?>" class="btn btn-secondary btn-sm" style="padding:0.2rem 0.5rem;"><i class="uil uil-angle-left"></i></a>
                                     <?php else: ?>
-                                        <span style="opacity:0.3; padding:0.2rem 0.5rem; display:inline-block;"><i class="uil uil-angle-left"></i> Mundur</span>
+                                        <span style="opacity:0.3; padding:0.2rem 0.5rem;"><i class="uil uil-angle-left"></i></span>
                                     <?php endif; ?>
                                     
-                                    <span style="color:var(--text-muted); font-size:0.85rem; font-weight:bold;">Hal <?php echo $page_num; ?> / <?php echo $total_pages; ?></span>
+                                    <span style="color:var(--text-muted); font-size:0.8rem; font-weight:600;">Hal <?php echo $page_num; ?> / <?php echo $total_pages; ?></span>
                                     
                                     <?php if($page_num < $total_pages): ?>
-                                        <a href="course_view.php?id=<?php echo $course_id; ?>&page=<?php echo $page_num+1; ?><?php echo $qsKeep; ?>" class="btn btn-secondary btn-sm" style="padding:0.2rem 0.5rem; display:flex; align-items:center;">Maju <i class="uil uil-angle-right"></i></a>
+                                        <a href="course_view.php?id=<?php echo $course_id; ?>&page=<?php echo $page_num+1; ?><?php echo $qsKeep; ?>" class="btn btn-secondary btn-sm" style="padding:0.2rem 0.5rem;"><i class="uil uil-angle-right"></i></a>
                                     <?php else: ?>
-                                        <span style="opacity:0.3; padding:0.2rem 0.5rem; display:inline-block;">Maju <i class="uil uil-angle-right"></i></span>
+                                        <span style="opacity:0.3; padding:0.2rem 0.5rem;"><i class="uil uil-angle-right"></i></span>
                                     <?php endif; ?>
                                 </div>
                             <?php endif; ?>
-                        </div>
                     <?php endif; ?>
                 </div>
             </div>

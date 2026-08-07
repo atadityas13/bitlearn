@@ -23,7 +23,7 @@ if(isset($_SESSION['error'])) {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?php echo isset($page_title) ? htmlspecialchars($page_title) . ' - BitLearn' : 'BitLearn | E-Learning Modern'; ?></title>
     <!-- We prefer to use Vanilla CSS to match our premium design standard -->
-    <link rel="stylesheet" href="<?php echo BASE_URL; ?>/assets/style.css">
+    <link rel="stylesheet" href="<?php echo BASE_URL; ?>/assets/style.css?v=<?php echo @filemtime(__DIR__ . '/../assets/style.css') ?: '1'; ?>">
     <!-- Unicons for beautiful modern icons -->
     <link rel="stylesheet" href="https://unicons.iconscout.com/release/v4.0.0/css/line.css">
     <!-- SweetAlert2 -->
