@@ -144,16 +144,7 @@ require_once '../components/header.php';
         </div>
     </div>
 
-    <?php if (isset($_SESSION['success'])): ?>
-        <div class="alert alert-success"><i class="uil uil-check-circle"></i>
-            <?php echo $_SESSION['success'];
-            unset($_SESSION['success']); ?>
-        </div><?php endif; ?>
-    <?php if (isset($_SESSION['error'])): ?>
-        <div class="alert alert-danger"><i class="uil uil-exclamation-circle"></i>
-            <?php echo $_SESSION['error'];
-            unset($_SESSION['error']); ?>
-        </div><?php endif; ?>
+    <?php /* Notifikasi sukses/gagal ditampilkan via SweetAlert di footer */ ?>
 
     <div class="grid course-layout-grid">
         <!-- Area Kurikulum (Modul & Materi) -->
@@ -330,7 +321,7 @@ require_once '../components/header.php';
             <div class="glass-card" style="position:sticky; top:100px; max-height:calc(100vh - 120px); display:flex; flex-direction:column; padding:1.5rem;">
                 <h4 style="margin-bottom:0.8rem; border-bottom:1px solid rgba(255,255,255,0.1); padding-bottom:0.8rem;"><i class="uil uil-analytics"></i> Papan Progres Siswa</h4>
 
-                <form method="GET" action="course_view.php" style="margin-bottom:0.9rem;">
+                <form method="GET" action="course_view.php" style="margin-bottom:0.75rem;">
                     <input type="hidden" name="id" value="<?php echo $course_id; ?>">
                     <div style="display:flex; gap:0.4rem;">
                         <input type="text" name="q" value="<?php echo htmlspecialchars($search_q); ?>"
@@ -350,6 +341,24 @@ require_once '../components/header.php';
                         <?php echo (int)$total_students_val; ?> siswa
                         <?php echo $search_q !== '' ? ' ditemukan' : ' terdaftar'; ?>
                     </small>
+                </form>
+
+                <form action="../actions/add_student_to_course.php" method="POST" style="margin-bottom:0.9rem; padding:0.7rem; background:rgba(16,185,129,0.08); border:1px solid rgba(16,185,129,0.2); border-radius:var(--radius-sm);">
+                    <input type="hidden" name="course_id" value="<?php echo $course_id; ?>">
+                    <input type="hidden" name="page" value="<?php echo $page_num; ?>">
+                    <input type="hidden" name="q" value="<?php echo htmlspecialchars($search_q); ?>">
+                    <label style="display:block; font-size:0.78rem; color:var(--text-muted); margin-bottom:0.35rem;">
+                        <i class="uil uil-user-plus"></i> Tambah siswa (NISN)
+                    </label>
+                    <div style="display:flex; gap:0.4rem;">
+                        <input type="text" name="nisn" class="form-control" placeholder="Masukkan NISN"
+                            required inputmode="numeric" autocomplete="off"
+                            style="flex:1; padding:0.45rem 0.7rem; font-size:0.85rem;">
+                        <button type="submit" class="btn btn-primary btn-sm" title="Tambahkan siswa ke course"
+                            style="padding:0.45rem 0.7rem; background:#10b981; border:none;">
+                            <i class="uil uil-plus"></i>
+                        </button>
+                    </div>
                 </form>
                 
                 <div style="overflow-y:auto; flex:1; padding-right:0.5rem;" class="custom-scrollbar">
@@ -407,7 +416,8 @@ require_once '../components/header.php';
                                         </button>
                                     </form>
                                     <form action="../actions/unenroll_student.php" method="POST" style="margin:0;"
-                                        data-confirm="Keluarkan siswa ini dari course? Siswa tidak akan bisa mengakses course lagi.">
+                                        data-confirm-unenroll="1"
+                                        data-student-name="<?php echo htmlspecialchars($sp['name'], ENT_QUOTES, 'UTF-8'); ?>">
                                         <input type="hidden" name="course_id" value="<?php echo $course_id; ?>">
                                         <input type="hidden" name="student_id" value="<?php echo (int)$sp['id']; ?>">
                                         <input type="hidden" name="page" value="<?php echo $page_num; ?>">

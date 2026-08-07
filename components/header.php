@@ -29,10 +29,17 @@ if(isset($_SESSION['error'])) {
     <!-- SweetAlert2 -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <style>
-        .swal2-popup { font-family: 'Outfit', sans-serif !important; border-radius: var(--radius) !important; }
-        .swal2-title { color: var(--text-main) !important; }
+        .swal2-popup { font-family: 'Outfit', sans-serif !important; border-radius: var(--radius) !important; border: 1px solid rgba(255,255,255,0.08) !important; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.55) !important; }
+        .swal2-title { color: var(--text-main) !important; font-weight: 700 !important; font-size: 1.35rem !important; }
         .swal2-html-container { color: var(--text-muted) !important; }
-        .swal2-confirm { border-radius: var(--radius-sm) !important; padding: 0.75rem 1.5rem !important; }
+        .swal2-confirm { border-radius: var(--radius-sm) !important; padding: 0.7rem 1.4rem !important; font-weight: 600 !important; }
+        .swal2-cancel { border-radius: var(--radius-sm) !important; padding: 0.7rem 1.4rem !important; }
+        .swal2-icon.swal2-success { border-color: #10b981 !important; color: #10b981 !important; }
+        .swal2-icon.swal2-success [class^=swal2-success-line] { background-color: #10b981 !important; }
+        .swal2-icon.swal2-success .swal2-success-ring { border-color: rgba(16,185,129,0.3) !important; }
+        .swal2-icon.swal2-error { border-color: #ef4444 !important; color: #ef4444 !important; }
+        .swal2-icon.swal2-error .swal2-x-mark-line-left,
+        .swal2-icon.swal2-error .swal2-x-mark-line-right { background-color: #ef4444 !important; }
     </style>
 </head>
 <body class="bg-gradient-mesh">

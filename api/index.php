@@ -161,41 +161,14 @@ if ($route === '/courses/enroll' && $method === 'POST') {
     $input = api_input();
     $code = trim($input['enrollment_code'] ?? $input['code'] ?? '');
 
-    if ($code === '') {
-        ApiResponse::error('Kode pelajaran wajib diisi.', 422);
+    $result = CourseStudents::enrollByCode($conn, $studentId, $code);
+    if (!$result['ok']) {
+        ApiResponse::error($result['message'], (int) $result['code']);
     }
-
-    $codeEsc = $conn->real_escape_string($code);
-    $result = $conn->query("SELECT * FROM courses WHERE enrollment_code = '$codeEsc' LIMIT 1");
-    if (!$result || $result->num_rows === 0) {
-        ApiResponse::error('Kode pelajaran tidak valid atau tidak ditemukan.', 404);
-    }
-    $course = $result->fetch_assoc();
-    $courseId = (int) $course['id'];
-
-    $check = $conn->query("SELECT id FROM enrollments WHERE course_id = $courseId AND student_id = $studentId");
-    $alreadyEnrolled = $check && $check->num_rows > 0;
-    $wasExcluded = CourseStudents::isExcluded($conn, $courseId, $studentId);
-
-    if ($alreadyEnrolled) {
-        // Gabung ulang setelah unenroll: pulihkan akses, jangan 409
-        if ($wasExcluded) {
-            CourseStudents::clearExclusion($conn, $courseId, $studentId);
-            ApiResponse::success(
-                StudentAccess::coursePayload($course, $baseUrl),
-                'Akses mata pelajaran dipulihkan'
-            );
-        }
-        ApiResponse::error('Anda sudah tergabung dalam pelajaran ini.', 409);
-    }
-
-    $ok = $conn->query("INSERT INTO enrollments (course_id, student_id) VALUES ($courseId, $studentId)");
-    if (!$ok) {
-        ApiResponse::error('Gagal bergabung ke mata pelajaran. Coba lagi.', 500);
-    }
-    // Gabung dengan kode = izin masuk kembali (hapus exclusion jika ada)
-    CourseStudents::clearExclusion($conn, $courseId, $studentId);
-    ApiResponse::success(StudentAccess::coursePayload($course, $baseUrl), 'Berhasil bergabung ke mata pelajaran');
+    ApiResponse::success(
+        StudentAccess::coursePayload($result['course'], $baseUrl),
+        $result['message']
+    );
 }
 
 // ---------------------------------------------------------------------------

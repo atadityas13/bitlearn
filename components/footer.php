@@ -34,12 +34,20 @@ $hide_nav = (isset($hide_navbar) && $hide_navbar);
 <?php if(isset($swal_success) && $swal_success !== ''): ?>
 <script>
     Swal.fire({
-        title: 'Selesai!',
-        html: '<?php echo addslashes($swal_success); ?>',
         icon: 'success',
-        confirmButtonColor: 'var(--secondary)',
-        confirmButtonText: 'OK',
-        background: 'var(--surface)'
+        title: 'Berhasil!',
+        html: '<p style="margin:0;line-height:1.55;font-size:1rem;"><?php echo htmlspecialchars($swal_success, ENT_QUOTES, 'UTF-8'); ?></p>',
+        confirmButtonText: 'Mengerti',
+        confirmButtonColor: '#10b981',
+        background: 'var(--surface)',
+        color: 'var(--text-main)',
+        width: 420,
+        padding: '1.75rem',
+        customClass: {
+            popup: 'bitlearn-swal',
+            title: 'bitlearn-swal-title',
+            confirmButton: 'bitlearn-swal-btn'
+        }
     });
 </script>
 <?php endif; ?>
@@ -47,12 +55,20 @@ $hide_nav = (isset($hide_navbar) && $hide_navbar);
 <?php if(isset($swal_error) && $swal_error !== ''): ?>
 <script>
     Swal.fire({
-        title: 'Gagal!',
-        html: '<?php echo addslashes($swal_error); ?>',
         icon: 'error',
-        confirmButtonColor: 'var(--danger)',
+        title: 'Gagal!',
+        html: '<p style="margin:0;line-height:1.55;font-size:1rem;"><?php echo htmlspecialchars($swal_error, ENT_QUOTES, 'UTF-8'); ?></p>',
         confirmButtonText: 'Tutup',
-        background: 'var(--surface)'
+        confirmButtonColor: '#ef4444',
+        background: 'var(--surface)',
+        color: 'var(--text-main)',
+        width: 420,
+        padding: '1.75rem',
+        customClass: {
+            popup: 'bitlearn-swal',
+            title: 'bitlearn-swal-title',
+            confirmButton: 'bitlearn-swal-btn'
+        }
     });
 </script>
 <?php endif; ?>
@@ -64,20 +80,71 @@ document.querySelectorAll('form[data-confirm]').forEach(form => {
         e.preventDefault();
         const msg = this.getAttribute('data-confirm');
         Swal.fire({
-            title: 'Peringatan!',
-            text: msg,
+            title: 'Konfirmasi',
+            html: '<p style="margin:0;line-height:1.5;">' + msg + '</p>',
             icon: 'warning',
             showCancelButton: true,
             confirmButtonColor: 'var(--danger)',
-            cancelButtonColor: 'var(--border)',
+            cancelButtonColor: '#64748b',
             confirmButtonText: 'Ya, Lanjutkan',
             cancelButtonText: 'Batal',
             background: 'var(--surface)',
-            color: 'var(--text-main)'
+            color: 'var(--text-main)',
+            reverseButtons: true
         }).then((result) => {
             if (result.isConfirmed) {
                 this.submit();
             }
+        });
+    });
+});
+
+// Unenroll: konfirmasi + checkbox cegah masuk kembali
+document.querySelectorAll('form[data-confirm-unenroll]').forEach(form => {
+    form.addEventListener('submit', function(e) {
+        e.preventDefault();
+        const studentName = this.getAttribute('data-student-name') || 'siswa ini';
+        Swal.fire({
+            title: 'Keluarkan siswa?',
+            html: `
+                <p style="margin:0 0 1rem; line-height:1.5; color:var(--text-muted);">
+                    Keluarkan <b style="color:var(--text-main);">${studentName}</b> dari course ini?
+                </p>
+                <label style="display:flex; align-items:flex-start; gap:0.65rem; text-align:left; background:rgba(239,68,68,0.08); border:1px solid rgba(239,68,68,0.25); border-radius:10px; padding:0.85rem 1rem; cursor:pointer;">
+                    <input type="checkbox" id="swalPreventRejoin" style="margin-top:0.2rem; width:1rem; height:1rem; accent-color:#ef4444;">
+                    <span style="font-size:0.9rem; line-height:1.4; color:var(--text-main);">
+                        Cegah siswa masuk course ini kembali
+                        <small style="display:block; margin-top:0.25rem; color:var(--text-muted); font-weight:400;">
+                            Jika dicentang, siswa tidak bisa gabung lagi lewat kode kelas.
+                        </small>
+                    </span>
+                </label>
+            `,
+            icon: 'warning',
+            showCancelButton: true,
+            focusConfirm: false,
+            confirmButtonColor: '#ef4444',
+            cancelButtonColor: '#64748b',
+            confirmButtonText: 'Ya, Keluarkan',
+            cancelButtonText: 'Batal',
+            background: 'var(--surface)',
+            color: 'var(--text-main)',
+            reverseButtons: true,
+            preConfirm: () => {
+                const el = document.getElementById('swalPreventRejoin');
+                return !!(el && el.checked);
+            }
+        }).then((result) => {
+            if (!result.isConfirmed) return;
+            let input = this.querySelector('input[name="prevent_rejoin"]');
+            if (!input) {
+                input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = 'prevent_rejoin';
+                this.appendChild(input);
+            }
+            input.value = result.value ? '1' : '0';
+            this.submit();
         });
     });
 });

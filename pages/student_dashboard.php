@@ -89,17 +89,6 @@ require_once '../components/header.php';
         </div>
     </div>
 
-    <?php if (isset($_SESSION['success'])): ?>
-        <div class="alert alert-success"><i class="uil uil-check-circle"></i>
-            <?php echo $_SESSION['success'];
-            unset($_SESSION['success']); ?>
-        </div><?php endif; ?>
-    <?php if (isset($_SESSION['error'])): ?>
-        <div class="alert alert-danger"><i class="uil uil-exclamation-circle"></i>
-            <?php echo $_SESSION['error'];
-            unset($_SESSION['error']); ?>
-        </div><?php endif; ?>
-
     <!-- Upcoming Assignments Notification -->
     <?php if ($pending_assignments_query && $pending_assignments_query->num_rows > 0): ?>
         <div style="margin-bottom:2.5rem; animation: slideDown 0.5s ease-out;">
