@@ -156,8 +156,8 @@ $page_title = 'Panel Course: ' . $course['title'];
 require_once '../components/header.php';
 ?>
 
-<div class="container main-content" style="padding-top:2rem;">
-    <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:2rem;">
+<div class="container main-content">
+    <div class="page-header">
         <div>
             <h2><i class="uil uil-book-open"></i> <?php echo htmlspecialchars($course['title']); ?></h2>
             <p style="color:var(--text-muted); margin-top:0.5rem; max-width:800px;">
@@ -180,8 +180,8 @@ require_once '../components/header.php';
                 </button>
             </div>
         </div>
-        <div style="display:flex; gap:1rem;">
-            <button onclick="document.getElementById('modalAddModule').classList.add('active')" class="btn btn-primary" style="box-shadow:0 4px 15px rgba(79, 70, 229, 0.4);">
+        <div class="page-actions">
+            <button type="button" onclick="document.getElementById('modalAddModule').classList.add('active')" class="btn btn-primary" style="box-shadow:0 4px 15px rgba(79, 70, 229, 0.4);">
                 <i class="uil uil-layer-group"></i> Buat Modul Baru
             </button>
             <a href="manage_courses.php" class="btn btn-secondary">
@@ -197,14 +197,15 @@ require_once '../components/header.php';
         <div>
             <!-- Assignments List First -->
             <div class="glass-card" style="margin-bottom:2rem;">
-                <div
-                    style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem; border-bottom:1px solid rgba(255,255,255,0.1); padding-bottom:1rem;">
+                <div class="page-header" style="margin-bottom:1rem; border-bottom:1px solid rgba(255,255,255,0.1); padding-bottom:1rem;">
                     <h3 style="margin:0;"><i class="uil uil-clipboard-notes"
                             style="color:var(--warning); margin-right:0.5rem;"></i> Penugasan / Ulangan</h3>
+                    <div class="page-actions">
                     <a href="add_assignment.php?course_id=<?php echo $course_id; ?>" class="btn btn-primary"
                         style="padding:0.4rem 1rem; font-size:0.9rem; background:var(--warning); border:none; box-shadow:0 4px 15px rgba(245, 158, 11, 0.4);">
                         <i class="uil uil-plus"></i> Buat Tugas
                     </a>
+                    </div>
                 </div>
 
                 <?php if ($assign_qs && $assign_qs->num_rows > 0): ?>
@@ -524,7 +525,7 @@ require_once '../components/header.php';
                 Siswa yang masuk lewat kode gabung / NISN manual tidak terpengaruh.
             </p>
             <?php if (!empty($teacher_classes)): ?>
-                <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.65rem; max-height:280px; overflow-y:auto; padding:0.85rem; background:rgba(0,0,0,0.2); border-radius:var(--radius-sm); border:1px solid var(--border); margin-bottom:1.25rem;">
+                <div class="check-grid" style="padding:0.85rem; background:rgba(0,0,0,0.2); border-radius:var(--radius-sm); border:1px solid var(--border); margin-bottom:1.25rem;">
                     <?php foreach ($teacher_classes as $cl):
                         $cid = (int)$cl['id'];
                         $checked = isset($linked_class_ids[$cid]) ? 'checked' : '';

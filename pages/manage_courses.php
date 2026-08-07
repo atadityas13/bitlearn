@@ -10,15 +10,17 @@ $classes = $conn->query("SELECT * FROM classes WHERE teacher_id = $teacher_id");
 $page_title = 'Manajemen Course';
 require_once '../components/header.php';
 ?>
-<div class="container main-content" style="padding-top:2rem;">
-    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:2rem;">
+<div class="container main-content">
+    <div class="page-header">
         <div>
             <h2><i class="uil uil-books"></i> Manajemen Course</h2>
-            <p class="text-muted">Buat ruang Course, atur pendaftaran siswa, dan kelola materinya.</p>
+            <p class="text-muted" style="margin:0;">Buat ruang Course, atur pendaftaran siswa, dan kelola materinya.</p>
         </div>
-        <button onclick="document.getElementById('modalAddCourse').classList.add('active')" class="btn btn-primary">
-            <i class="uil uil-plus"></i> Buat Course Baru
-        </button>
+        <div class="page-actions">
+            <button type="button" onclick="document.getElementById('modalAddCourse').classList.add('active')" class="btn btn-primary">
+                <i class="uil uil-plus"></i> Buat Course Baru
+            </button>
+        </div>
     </div>
 
     <?php if(isset($_SESSION['success'])): ?><div class="alert alert-success"><?php echo $_SESSION['success']; unset($_SESSION['success']); ?></div><?php endif; ?>
@@ -27,7 +29,7 @@ require_once '../components/header.php';
     <div class="glass-card" style="margin-bottom:2rem;">
         <h3 style="margin-bottom:1.5rem;"><i class="uil uil-apps"></i> Daftar Course Aktif</h3>
         
-        <div class="grid grid-cols-3">
+        <div class="grid-auto">
             <?php if($courses && $courses->num_rows > 0): ?>
                 <?php while($c = $courses->fetch_assoc()): $c_id = $c['id']; ?>
                     <div style="background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-sm); padding:1.5rem; padding-top:140px; display:flex; flex-direction:column; position:relative;">
@@ -135,7 +137,7 @@ require_once '../components/header.php';
                                         Centang untuk menambah, hilangkan centang untuk mengeluarkan rombel dari course ini.
                                     </div>
                                     <?php if ($classes && $classes->num_rows > 0): ?>
-                                        <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.5rem; max-height:160px; overflow-y:auto;">
+                                        <div class="check-grid" style="max-height:160px;">
                                             <?php
                                             $classes->data_seek(0);
                                             while ($cl = $classes->fetch_assoc()):
@@ -199,7 +201,7 @@ require_once '../components/header.php';
                 <label class="form-label"><i class="uil uil-users-alt"></i> Daftarkan Otomatis Rombel Berikut:</label>
                 <div style="font-size:0.8rem; color:var(--text-muted); margin-bottom:1rem;">Centang kelas yang siswanya berhak mendapat *Akses Langsung* ke Course ini tanpa input kode manual.</div>
                 <?php if($classes && $classes->num_rows > 0): ?>
-                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.5rem; max-height:150px; overflow-y:auto;">
+                    <div class="check-grid" style="max-height:150px;">
                         <?php 
                         $classes->data_seek(0);
                         while($cl = $classes->fetch_assoc()): ?>

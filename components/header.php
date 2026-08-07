@@ -50,51 +50,51 @@ if(isset($_SESSION['error'])) {
     
     <?php if($is_teacher): ?>
         <!-- Teacher Sidebar Layout -->
-        <div class="app-wrapper">
+        <div class="app-wrapper" id="appWrapper">
+            <div class="admin-sidebar-overlay" id="adminSidebarOverlay" aria-hidden="true"></div>
             <!-- Sidebar Kiri -->
-            <aside class="app-sidebar">
+            <aside class="app-sidebar" id="appSidebar">
                 <div class="sidebar-header" style="justify-content:center; display:flex; padding:2rem 0 1rem 0;">
                     <a href="<?php echo BASE_URL; ?>" style="display:block;">
-                        <img src="<?php echo BASE_URL; ?>/assets/logo.png" alt="BitLearn Logo" style="height:auto; width:160px; max-width:100%; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));">
+                        <img src="<?php echo BASE_URL; ?>/assets/logo.png" alt="BitLearn Logo" style="filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));">
                     </a>
                 </div>
                 <nav class="sidebar-nav">
-                    <!-- Penanda URL Aktif Sederhana -->
                     <?php $cur = $_SERVER['REQUEST_URI']; ?>
-                    <a href="<?php echo BASE_URL; ?>/pages/teacher_dashboard.php" class="sidebar-link <?php echo strpos($cur, 'teacher_dashboard') ? 'active' : ''; ?>">
-                        <i class="uil uil-estate"></i> Beranda
+                    <a href="<?php echo BASE_URL; ?>/pages/teacher_dashboard.php" class="sidebar-link <?php echo strpos($cur, 'teacher_dashboard') ? 'active' : ''; ?>" title="Beranda">
+                        <i class="uil uil-estate"></i> <span>Beranda</span>
                     </a>
-                    <a href="<?php echo BASE_URL; ?>/pages/manage_classes.php" class="sidebar-link <?php echo strpos($cur, 'manage_classes') ? 'active' : ''; ?>">
-                        <i class="uil uil-building"></i> Manajemen Rombel
+                    <a href="<?php echo BASE_URL; ?>/pages/manage_classes.php" class="sidebar-link <?php echo strpos($cur, 'manage_classes') ? 'active' : ''; ?>" title="Manajemen Rombel">
+                        <i class="uil uil-building"></i> <span>Manajemen Rombel</span>
                     </a>
-                    <a href="<?php echo BASE_URL; ?>/pages/manage_students.php" class="sidebar-link <?php echo strpos($cur, 'manage_students') ? 'active' : ''; ?>">
-                        <i class="uil uil-users-alt"></i> Manajemen Siswa
+                    <a href="<?php echo BASE_URL; ?>/pages/manage_students.php" class="sidebar-link <?php echo strpos($cur, 'manage_students') ? 'active' : ''; ?>" title="Manajemen Siswa">
+                        <i class="uil uil-users-alt"></i> <span>Manajemen Siswa</span>
                     </a>
-                    <a href="<?php echo BASE_URL; ?>/pages/manage_courses.php" class="sidebar-link <?php echo strpos($cur, 'manage_courses') || strpos($cur, 'course_view') || strpos($cur, 'add_') ? 'active' : ''; ?>">
-                        <i class="uil uil-books"></i> Manajemen Course
+                    <a href="<?php echo BASE_URL; ?>/pages/manage_courses.php" class="sidebar-link <?php echo strpos($cur, 'manage_courses') || strpos($cur, 'course_view') || strpos($cur, 'add_') ? 'active' : ''; ?>" title="Manajemen Course">
+                        <i class="uil uil-books"></i> <span>Manajemen Course</span>
                     </a>
-                    <a href="<?php echo BASE_URL; ?>/pages/teacher_grading.php" class="sidebar-link <?php echo strpos($cur, 'teacher_grading') ? 'active' : ''; ?>">
-                        <i class="uil uil-award"></i> Penilaian
+                    <a href="<?php echo BASE_URL; ?>/pages/teacher_grading.php" class="sidebar-link <?php echo strpos($cur, 'teacher_grading') ? 'active' : ''; ?>" title="Penilaian">
+                        <i class="uil uil-award"></i> <span>Penilaian</span>
                     </a>
                 </nav>
-                <div style="padding: 1.5rem; border-top: 1px solid rgba(255,255,255,0.05); background:rgba(0,0,0,0.1);">
-                    <div style="display:flex; align-items:center; gap:1rem; margin-bottom:1rem;">
+                <div class="sidebar-footer">
+                    <div class="profile-row" style="display:flex; align-items:center; gap:1rem; margin-bottom:1rem;">
                         <?php $prof_pic = isset($_SESSION['profile_pic']) && !empty($_SESSION['profile_pic']) ? BASE_URL . '/uploads/' . $_SESSION['profile_pic'] : null; ?>
                         <?php if($prof_pic): ?>
-                            <img src="<?php echo htmlspecialchars($prof_pic); ?>" alt="Avatar" style="width:45px; height:45px; border-radius:50%; object-fit:cover; border:2px solid var(--primary);">
+                            <img src="<?php echo htmlspecialchars($prof_pic); ?>" alt="Avatar" style="width:45px; height:45px; border-radius:50%; object-fit:cover; border:2px solid var(--primary); flex-shrink:0;">
                         <?php else: ?>
-                            <div style="width:45px; height:45px; border-radius:50%; background:var(--surface); display:flex; align-items:center; justify-content:center; border:2px solid var(--primary); font-size:1.5rem; color:var(--text-muted);">
+                            <div style="width:45px; height:45px; border-radius:50%; background:var(--surface); display:flex; align-items:center; justify-content:center; border:2px solid var(--primary); font-size:1.5rem; color:var(--text-muted); flex-shrink:0;">
                                 <i class="uil uil-user"></i>
                             </div>
                         <?php endif; ?>
-                        <div style="flex:1; overflow:hidden;">
+                        <div class="user-meta" style="flex:1; overflow:hidden;">
                             <div style="font-size:0.95rem; font-weight:600; color:var(--text-main); white-space:nowrap; text-overflow:ellipsis; overflow:hidden;"><?php echo htmlspecialchars($_SESSION['user_name']); ?></div>
                             <div style="font-size:0.75rem; color:var(--text-muted);">Akun Guru</div>
                         </div>
                     </div>
                     
-                    <div style="display:flex; gap:0.5rem;">
-                        <a href="<?php echo BASE_URL; ?>/pages/edit_profile.php" class="btn btn-secondary" style="flex:1; padding:0.5rem; font-size:0.85rem;" title="Pengaturan Profil"><i class="uil uil-user-circle"></i> Profil</a>
+                    <div class="profile-actions" style="display:flex; gap:0.5rem;">
+                        <a href="<?php echo BASE_URL; ?>/pages/edit_profile.php" class="btn btn-secondary" style="flex:1; padding:0.5rem; font-size:0.85rem;" title="Pengaturan Profil"><i class="uil uil-user-circle"></i> <span class="btn-label">Profil</span></a>
                         <a href="<?php echo BASE_URL; ?>/actions/logout.php" class="btn btn-danger" style="flex:0 0 auto; padding:0.5rem 0.8rem;" title="Keluar"><i class="uil uil-sign-out-alt"></i></a>
                     </div>
                 </div>
@@ -102,12 +102,20 @@ if(isset($_SESSION['error'])) {
             
             <!-- Konten Utama Kanan -->
             <main class="app-main">
-                <!-- Top Nav Sederhana -->
                 <header class="top-nav">
-                    <div style="flex:1;">
+                    <div class="top-nav-left">
+                        <button type="button" class="sidebar-toggle" id="sidebarToggle" aria-label="Toggle menu navigasi" aria-controls="appSidebar" aria-expanded="true">
+                            <i class="uil uil-bars"></i>
+                        </button>
                         <span style="color:var(--text-muted); font-size:0.9rem;">
                             <i class="uil uil-calender"></i> <?php echo date('d M Y'); ?>
                         </span>
+                    </div>
+                    <div class="top-nav-right">
+                        <div class="top-nav-user">
+                            <a href="<?php echo BASE_URL; ?>/pages/edit_profile.php" class="btn btn-secondary" title="Profil"><i class="uil uil-user-circle"></i></a>
+                            <a href="<?php echo BASE_URL; ?>/actions/logout.php" class="btn btn-danger" title="Keluar"><i class="uil uil-sign-out-alt"></i></a>
+                        </div>
                     </div>
                 </header>
     <?php else: ?>

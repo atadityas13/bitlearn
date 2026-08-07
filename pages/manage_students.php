@@ -43,27 +43,27 @@ $students = $conn->query($query);
 $page_title = 'Manajemen Siswa V6';
 require_once '../components/header.php';
 ?>
-<div class="container main-content" style="padding-top:2rem;">
-    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:2rem;">
+<div class="container main-content">
+    <div class="page-header">
         <div>
             <h2><i class="uil uil-users-alt"></i> Direktori Siswa</h2>
-            <p class="text-muted">Awasi, perbarui, dan kontrol akun berdasar Rombel aktif.</p>
+            <p class="text-muted" style="margin:0;">Awasi, perbarui, dan kontrol akun berdasar Rombel aktif.</p>
         </div>
-        <div style="display:flex; gap:1rem; align-items:center;">
-            <button onclick="document.getElementById('modalImportExcel').classList.add('active')" class="btn btn-secondary" style="border-color:var(--secondary); color:var(--secondary); background:rgba(16, 185, 129, 0.1);">
+        <div class="page-actions">
+            <button type="button" onclick="document.getElementById('modalImportExcel').classList.add('active')" class="btn btn-secondary" style="border-color:var(--secondary); color:var(--secondary); background:rgba(16, 185, 129, 0.1);">
                 <i class="uil uil-file-upload"></i> Impor Excel
             </button>
-            <button onclick="document.getElementById('modalAddStudent').classList.add('active')" class="btn btn-primary" style="background:var(--warning); color:#fff; border:none;">
+            <button type="button" onclick="document.getElementById('modalAddStudent').classList.add('active')" class="btn btn-primary" style="background:var(--warning); color:#fff; border:none;">
                 <i class="uil uil-user-plus"></i> Registrasi Siswa
             </button>
         </div>
     </div>
 
     <!-- Filter Bar -->
-    <div class="glass-card" style="padding:1rem 1.5rem; margin-bottom:1.5rem; display:flex; gap:1rem; align-items:center;">
-        <form action="" method="GET" style="display:flex; gap:1rem; align-items:center; margin:0; width:100%;">
+    <div class="glass-card" style="padding:1rem 1.5rem; margin-bottom:1.5rem;">
+        <form action="" method="GET" class="filter-row" style="margin:0;">
             <strong style="white-space:nowrap;"><i class="uil uil-filter"></i> Filter Rombel:</strong>
-            <select name="rombel" class="form-control" style="max-width:300px; background:var(--background);" onchange="this.form.submit()">
+            <select name="rombel" class="form-control" style="background:var(--background);" onchange="this.form.submit()">
                 <option value="0">Tampilkan Semua Rombel</option>
                 <?php 
                 if($classes) {
@@ -85,6 +85,7 @@ require_once '../components/header.php';
     <?php if(isset($_SESSION['error'])): ?><div class="alert alert-danger"><?php echo $_SESSION['error']; unset($_SESSION['error']); ?></div><?php endif; ?>
 
     <div class="glass-card" style="padding:1rem;">
+        <div class="table-responsive">
         <table class="table" style="min-width:800px;">
             <thead style="background:rgba(0,0,0,0.2);">
                 <tr>
@@ -169,6 +170,7 @@ require_once '../components/header.php';
                 <?php endif; ?>
             </tbody>
         </table>
+        </div>
         
         <!-- Pagination Controls -->
         <?php if($total_pages > 1): ?>

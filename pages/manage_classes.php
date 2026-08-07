@@ -8,15 +8,17 @@ $classes = $conn->query("SELECT * FROM classes WHERE teacher_id = $teacher_id OR
 $page_title = 'Manajemen Rombel';
 require_once '../components/header.php';
 ?>
-<div class="container main-content" style="padding-top:2rem;">
-    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:2rem;">
+<div class="container main-content">
+    <div class="page-header">
         <div>
             <h2><i class="uil uil-building"></i> Manajemen Rombongan Belajar</h2>
-            <p class="text-muted">Kelengkapan Grup Kelas untuk mengontrol pendaftaran siswa secara terpusat.</p>
+            <p class="text-muted" style="margin:0;">Kelengkapan Grup Kelas untuk mengontrol pendaftaran siswa secara terpusat.</p>
         </div>
-        <button onclick="document.getElementById('modalAddClass').classList.add('active')" class="btn btn-primary">
-            <i class="uil uil-plus"></i> Tambah Rombel
-        </button>
+        <div class="page-actions">
+            <button type="button" onclick="document.getElementById('modalAddClass').classList.add('active')" class="btn btn-primary">
+                <i class="uil uil-plus"></i> Tambah Rombel
+            </button>
+        </div>
     </div>
 
     <?php if(isset($_SESSION['success'])): ?><div class="alert alert-success"><?php echo $_SESSION['success']; unset($_SESSION['success']); ?></div><?php endif; ?>
@@ -32,22 +34,18 @@ require_once '../components/header.php';
                 $c_id = $cl['id'];
                 $st = $conn->query("SELECT student_id FROM class_students WHERE class_id = $c_id");
         ?>
-            <div style="background:rgba(0,0,0,0.2); padding:1.5rem; border-radius:var(--radius-sm); border:1px solid var(--border); margin-bottom:1rem; display:flex; justify-content:space-between; align-items:center;">
+            <div class="list-row">
                 <div>
                     <h4 style="color:var(--primary); font-size:1.2rem; margin-bottom:0.2rem;"><?php echo htmlspecialchars($cl['name']); ?></h4>
-                    <p style="color:var(--text-muted); font-size:0.9rem;"><i class="uil uil-users-alt"></i> <?php echo $st->num_rows; ?> Anggota Siswa Didaftarkan</p>
+                    <p style="color:var(--text-muted); font-size:0.9rem; margin:0;"><i class="uil uil-users-alt"></i> <?php echo $st->num_rows; ?> Anggota Siswa Didaftarkan</p>
                 </div>
-                <!-- Action Buttons: Edit and Delete -->
-                <div style="display:flex; gap:0.5rem;">
-                    <!-- Kelola btn routing to specific rombel filter -->
+                <div class="list-row-actions">
                     <a href="manage_students.php?rombel=<?php echo $c_id; ?>" class="btn btn-primary btn-sm" style="padding:0.4rem 0.8rem; background:var(--warning); color:#fff; border:none;">
                         <i class="uil uil-users-alt"></i> Kelola Anggota
                     </a>
-                    <!-- Edit btn triggers corresponding modal -->
-                    <button onclick="document.getElementById('modalEditClass<?php echo $c_id; ?>').classList.add('active')" class="btn btn-secondary btn-sm" style="padding:0.4rem 0.8rem;">
+                    <button type="button" onclick="document.getElementById('modalEditClass<?php echo $c_id; ?>').classList.add('active')" class="btn btn-secondary btn-sm" style="padding:0.4rem 0.8rem;">
                         <i class="uil uil-pen"></i> Edit
                     </button>
-                    <!-- Delete btn needs confirmation -->
                     <form action="../actions/delete_class.php" method="POST" data-confirm="Apakah Anda yakin ingin menghapus rombel ini secara permanen? Seluruh siswa akan kehilangan akses kelasnya." style="margin:0;">
                          <input type="hidden" name="class_id" value="<?php echo $c_id; ?>">
                          <button type="submit" class="btn btn-danger btn-sm" style="padding:0.4rem 0.8rem;"><i class="uil uil-trash-alt"></i> Hapus</button>

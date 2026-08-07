@@ -15,11 +15,15 @@ $unique_student_sum = $conn->query("SELECT COUNT(DISTINCT s.student_id) as sum F
 $page_title = 'Beranda Guru';
 require_once '../components/header.php';
 ?>
-<div class="container main-content" style="padding-top:2rem;">
-    <h2><i class="uil uil-estate"></i> Beranda Edukator</h2>
-    <p class="text-muted" style="margin-bottom:2rem;">Selamat datang, <?php echo htmlspecialchars($_SESSION['user_name']); ?>. Pantau aktivitas belajar mengajar Anda di sini.</p>
+<div class="container main-content">
+    <div class="page-header">
+        <div>
+            <h2><i class="uil uil-estate"></i> Beranda Edukator</h2>
+            <p class="text-muted" style="margin-bottom:0;">Selamat datang, <?php echo htmlspecialchars($_SESSION['user_name']); ?>. Pantau aktivitas belajar mengajar Anda di sini.</p>
+        </div>
+    </div>
 
-    <div class="grid grid-cols-3" style="margin-bottom:2rem;">
+    <div class="stats-grid" style="margin-bottom:2rem;">
         <div class="glass-card" style="text-align:center;">
             <i class="uil uil-users-alt" style="font-size:3rem; color:var(--primary);"></i>
             <h3><?php echo $classes_count; ?> Rombel</h3>
@@ -41,7 +45,7 @@ require_once '../components/header.php';
     <h3 style="margin-bottom:1rem; padding-bottom:0.5rem; border-bottom:1px solid rgba(255,255,255,0.1);"><i class="uil uil-clipboard-notes"></i> Pantauan Penugasan</h3>
     <div class="grid grid-cols-2" style="margin-bottom:2rem;">
         <a href="teacher_grading.php" style="text-decoration:none; color:inherit;">
-            <div class="glass-card flex-split" style="align-items:center; transition:var(--transition); cursor:pointer; background:linear-gradient(135deg, rgba(239, 68, 68, 0.1) 0%, rgba(0,0,0,0.4) 100%); border:1px solid rgba(239,68,68,0.3);">
+            <div class="glass-card flex-split" style="align-items:center; cursor:pointer; background:linear-gradient(135deg, rgba(239, 68, 68, 0.1) 0%, rgba(0,0,0,0.4) 100%); border:1px solid rgba(239,68,68,0.3);">
                 <div>
                     <h2 style="font-size:2.5rem; margin:0; color:var(--danger);"><?php echo $ungraded_submissions; ?></h2>
                     <h4 style="margin:0; font-size:1.1rem; color:var(--text-main);">Tugas Belum Dinilai</h4>

@@ -225,6 +225,80 @@ function closePreview() {
 window.addEventListener('keydown', function(e) {
     if (e.key === 'Escape') closePreview();
 });
+
+// Teacher admin sidebar toggle (collapse on desktop, off-canvas on laptop)
+(function () {
+    const wrapper = document.getElementById('appWrapper');
+    const toggle = document.getElementById('sidebarToggle');
+    const overlay = document.getElementById('adminSidebarOverlay');
+    if (!wrapper || !toggle) return;
+
+    const mqOffcanvas = window.matchMedia('(max-width: 1099px) and (min-width: 769px)');
+    const storageKey = 'bitlearn_sidebar_collapsed';
+
+    function isOffcanvas() {
+        return mqOffcanvas.matches;
+    }
+
+    function syncAria() {
+        const open = isOffcanvas()
+            ? wrapper.classList.contains('sidebar-open')
+            : !wrapper.classList.contains('sidebar-collapsed');
+        toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+        if (overlay) {
+            overlay.classList.toggle('open', isOffcanvas() && wrapper.classList.contains('sidebar-open'));
+            overlay.setAttribute('aria-hidden', overlay.classList.contains('open') ? 'false' : 'true');
+        }
+    }
+
+    function applyInitial() {
+        if (isOffcanvas()) {
+            wrapper.classList.remove('sidebar-collapsed');
+            wrapper.classList.remove('sidebar-open');
+        } else {
+            wrapper.classList.remove('sidebar-open');
+            if (localStorage.getItem(storageKey) === '1') {
+                wrapper.classList.add('sidebar-collapsed');
+            }
+        }
+        syncAria();
+    }
+
+    toggle.addEventListener('click', function () {
+        if (isOffcanvas()) {
+            wrapper.classList.toggle('sidebar-open');
+        } else {
+            wrapper.classList.toggle('sidebar-collapsed');
+            localStorage.setItem(
+                storageKey,
+                wrapper.classList.contains('sidebar-collapsed') ? '1' : '0'
+            );
+        }
+        syncAria();
+    });
+
+    if (overlay) {
+        overlay.addEventListener('click', function () {
+            wrapper.classList.remove('sidebar-open');
+            syncAria();
+        });
+    }
+
+    window.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape' && wrapper.classList.contains('sidebar-open')) {
+            wrapper.classList.remove('sidebar-open');
+            syncAria();
+        }
+    });
+
+    if (mqOffcanvas.addEventListener) {
+        mqOffcanvas.addEventListener('change', applyInitial);
+    } else if (mqOffcanvas.addListener) {
+        mqOffcanvas.addListener(applyInitial);
+    }
+
+    applyInitial();
+})();
 </script>
 
 <style>
