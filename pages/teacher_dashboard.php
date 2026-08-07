@@ -54,7 +54,7 @@ require_once '../components/header.php';
     <div class="dash-section">
         <h3 class="dash-section-title"><i class="uil uil-clipboard-notes"></i> Pantauan Penugasan</h3>
         <div class="grid grid-cols-2 dash-monitor-grid">
-            <a href="teacher_grading.php" class="glass-card dash-monitor is-danger">
+            <a href="teacher_grading.php?status=ungraded" class="glass-card dash-monitor is-danger">
                 <div class="dash-monitor-body">
                     <div class="dash-monitor-value"><?php echo (int)$ungraded_submissions; ?></div>
                     <div class="dash-monitor-label">Tugas Belum Dinilai</div>
