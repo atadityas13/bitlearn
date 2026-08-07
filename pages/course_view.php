@@ -18,6 +18,30 @@ if (!$course_result || $course_result->num_rows === 0) {
 }
 $course = $course_result->fetch_assoc();
 
+// Rombel guru + yang terhubung ke course ini
+$teacher_classes = [];
+$tcq = $conn->query("SELECT id, name FROM classes WHERE teacher_id = $teacher_id ORDER BY name ASC");
+if ($tcq) {
+    while ($row = $tcq->fetch_assoc()) {
+        $teacher_classes[] = $row;
+    }
+}
+$linked_class_ids = [];
+$linked_class_names = [];
+$lcq = $conn->query("
+    SELECT cl.id, cl.name
+    FROM course_classes cc
+    JOIN classes cl ON cl.id = cc.class_id
+    WHERE cc.course_id = $course_id
+    ORDER BY cl.name ASC
+");
+if ($lcq) {
+    while ($row = $lcq->fetch_assoc()) {
+        $linked_class_ids[(int)$row['id']] = true;
+        $linked_class_names[] = $row['name'];
+    }
+}
+
 // Get modules and lessons
 $modules_result = $conn->query("SELECT * FROM modules WHERE course_id = $course_id ORDER BY order_num ASC, id ASC");
 $modules = [];
@@ -139,6 +163,22 @@ require_once '../components/header.php';
             <p style="color:var(--text-muted); margin-top:0.5rem; max-width:800px;">
                 <?php echo nl2br(htmlspecialchars($course['description'])); ?>
             </p>
+            <div style="margin-top:0.75rem; display:flex; flex-wrap:wrap; gap:0.45rem; align-items:center;">
+                <span style="color:var(--text-muted); font-size:0.85rem;"><i class="uil uil-building"></i> Rombel:</span>
+                <?php if (!empty($linked_class_names)): ?>
+                    <?php foreach ($linked_class_names as $cn): ?>
+                        <span style="background:rgba(99,102,241,0.18); color:#a5b4fc; padding:0.2rem 0.65rem; border-radius:12px; font-size:0.8rem;">
+                            <?php echo htmlspecialchars($cn); ?>
+                        </span>
+                    <?php endforeach; ?>
+                <?php else: ?>
+                    <span style="color:var(--text-muted); font-size:0.85rem;">Belum ada rombel terhubung</span>
+                <?php endif; ?>
+                <button type="button" onclick="document.getElementById('modalCourseClasses').classList.add('active')"
+                    class="btn btn-secondary btn-sm" style="padding:0.25rem 0.7rem;" title="Kelola rombel course">
+                    <i class="uil uil-edit"></i> Kelola Kelas
+                </button>
+            </div>
         </div>
         <div style="display:flex; gap:1rem;">
             <button onclick="document.getElementById('modalAddModule').classList.add('active')" class="btn btn-primary" style="box-shadow:0 4px 15px rgba(79, 70, 229, 0.4);">
@@ -469,6 +509,39 @@ require_once '../components/header.php';
         </div>
     </div>
     </div>
+
+<!-- Modal KELOLA ROMBEL COURSE -->
+<div id="modalCourseClasses" class="modal-overlay">
+    <div class="modal-box">
+        <div class="modal-header">
+            <h3><i class="uil uil-users-alt"></i> Kelola Kelas di Course</h3>
+            <button type="button" onclick="document.getElementById('modalCourseClasses').classList.remove('active')" class="btn-close"><i class="uil uil-times"></i></button>
+        </div>
+        <form action="../actions/update_course_classes.php" method="POST">
+            <input type="hidden" name="course_id" value="<?php echo $course_id; ?>">
+            <p style="color:var(--text-muted); font-size:0.9rem; margin-bottom:1rem;">
+                Centang rombel yang mendapat akses otomatis ke course ini. Hilangkan centang untuk mengeluarkan rombel.
+                Siswa yang masuk lewat kode gabung / NISN manual tidak terpengaruh.
+            </p>
+            <?php if (!empty($teacher_classes)): ?>
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.65rem; max-height:280px; overflow-y:auto; padding:0.85rem; background:rgba(0,0,0,0.2); border-radius:var(--radius-sm); border:1px solid var(--border); margin-bottom:1.25rem;">
+                    <?php foreach ($teacher_classes as $cl):
+                        $cid = (int)$cl['id'];
+                        $checked = isset($linked_class_ids[$cid]) ? 'checked' : '';
+                    ?>
+                        <label style="display:flex; align-items:center; gap:0.55rem; cursor:pointer; padding:0.35rem 0.2rem;">
+                            <input type="checkbox" name="allowed_classes[]" value="<?php echo $cid; ?>" <?php echo $checked; ?> style="width:18px; height:18px;">
+                            <span><?php echo htmlspecialchars($cl['name']); ?></span>
+                        </label>
+                    <?php endforeach; ?>
+                </div>
+            <?php else: ?>
+                <p style="color:var(--warning); margin-bottom:1rem;">Belum ada rombel. Buat dulu di Manajemen Rombel.</p>
+            <?php endif; ?>
+            <button type="submit" class="btn btn-primary btn-block" style="padding:0.9rem;"><i class="uil uil-save"></i> Simpan Daftar Kelas</button>
+        </form>
+    </div>
+</div>
 
 <!-- Modal ADD MODULE -->
 <div id="modalAddModule" class="modal-overlay">

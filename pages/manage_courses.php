@@ -58,6 +58,21 @@ require_once '../components/header.php';
                             <?php endif; ?>
                             
                             <?php
+                            $linked_names = [];
+                            $linked_ids = [];
+                            $lq = $conn->query("
+                                SELECT cl.id, cl.name
+                                FROM course_classes cc
+                                JOIN classes cl ON cl.id = cc.class_id
+                                WHERE cc.course_id = $c_id
+                                ORDER BY cl.name ASC
+                            ");
+                            if ($lq) {
+                                while ($lr = $lq->fetch_assoc()) {
+                                    $linked_ids[(int)$lr['id']] = true;
+                                    $linked_names[] = $lr['name'];
+                                }
+                            }
                             $student_count_query = "
                                 SELECT COUNT(DISTINCT student_id) as total_students
                                 FROM (
@@ -73,6 +88,15 @@ require_once '../components/header.php';
                             <span style="background:rgba(245, 158, 11, 0.2); color:var(--warning); padding:0.2rem 0.6rem; border-radius:12px; font-size:0.8rem; display:inline-block;" title="Jumlah siswa yang dimasukkan ke Course ini">
                                 <i class="uil uil-users-alt"></i> <?php echo $student_count; ?> Siswa Peserta
                             </span>
+                            <?php if (!empty($linked_names)): ?>
+                                <span style="background:rgba(99,102,241,0.18); color:#a5b4fc; padding:0.2rem 0.6rem; border-radius:12px; font-size:0.8rem; display:inline-block;" title="Rombel terhubung">
+                                    <i class="uil uil-building"></i> <?php echo htmlspecialchars(implode(', ', $linked_names)); ?>
+                                </span>
+                            <?php else: ?>
+                                <span style="background:rgba(255,255,255,0.06); color:var(--text-muted); padding:0.2rem 0.6rem; border-radius:12px; font-size:0.8rem; display:inline-block;">
+                                    <i class="uil uil-building"></i> Belum ada rombel
+                                </span>
+                            <?php endif; ?>
                         </div>
                         <p style="color:var(--text-muted); font-size:0.9rem; flex:1; margin-bottom:1.5rem; line-height:1.6;"><?php echo htmlspecialchars(substr($c['description'], 0, 90)); ?>...</p>
                         
@@ -104,6 +128,29 @@ require_once '../components/header.php';
                                     <label class="form-label">Ubah Gambar Sampul (Opsional)</label>
                                     <input type="file" name="thumbnail_file" class="form-control" accept="image/*" style="background:var(--background);">
                                     <small style="color:var(--text-muted);">Abaikan jika Anda tidak ingin mengganti sampul saat ini.</small>
+                                </div>
+                                <div class="form-group" style="background:rgba(0,0,0,0.2); padding:1rem; border-radius:var(--radius-sm); border:1px solid var(--border);">
+                                    <label class="form-label"><i class="uil uil-users-alt"></i> Rombel yang terhubung</label>
+                                    <div style="font-size:0.8rem; color:var(--text-muted); margin-bottom:0.8rem;">
+                                        Centang untuk menambah, hilangkan centang untuk mengeluarkan rombel dari course ini.
+                                    </div>
+                                    <?php if ($classes && $classes->num_rows > 0): ?>
+                                        <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.5rem; max-height:160px; overflow-y:auto;">
+                                            <?php
+                                            $classes->data_seek(0);
+                                            while ($cl = $classes->fetch_assoc()):
+                                                $cid = (int)$cl['id'];
+                                                $checked = isset($linked_ids[$cid]) ? 'checked' : '';
+                                            ?>
+                                                <label style="display:flex; align-items:center; gap:0.5rem; cursor:pointer;">
+                                                    <input type="checkbox" name="allowed_classes[]" value="<?php echo $cid; ?>" <?php echo $checked; ?>>
+                                                    <span><?php echo htmlspecialchars($cl['name']); ?></span>
+                                                </label>
+                                            <?php endwhile; ?>
+                                        </div>
+                                    <?php else: ?>
+                                        <p style="color:var(--warning); font-size:0.85rem; margin:0;">Belum ada rombel. Buat di Manajemen Rombel terlebih dahulu.</p>
+                                    <?php endif; ?>
                                 </div>
                                 <button type="submit" class="btn btn-primary btn-block"><i class="uil uil-save"></i> Terapkan Pembaruan</button>
                             </form>
