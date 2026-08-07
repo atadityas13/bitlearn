@@ -24,7 +24,6 @@ require_once '../components/header.php';
     <?php if(isset($_SESSION['success'])): ?><div class="alert alert-success"><?php echo $_SESSION['success']; unset($_SESSION['success']); ?></div><?php endif; ?>
     <?php if(isset($_SESSION['error'])): ?><div class="alert alert-danger"><?php echo $_SESSION['error']; unset($_SESSION['error']); ?></div><?php endif; ?>
 
-    <!-- Daftar Rombel List -->
     <div class="glass-card">
         <h3 style="margin-bottom:1.5rem;"><i class="uil uil-list-ul"></i> Daftar Rombel Aktif</h3>
         <?php
@@ -40,25 +39,24 @@ require_once '../components/header.php';
                     <p style="color:var(--text-muted); font-size:0.9rem; margin:0;"><i class="uil uil-users-alt"></i> <?php echo $st->num_rows; ?> Anggota Siswa Didaftarkan</p>
                 </div>
                 <div class="list-row-actions">
-                    <a href="manage_students.php?rombel=<?php echo $c_id; ?>" class="btn btn-primary btn-sm" style="padding:0.4rem 0.8rem; background:var(--warning); color:#fff; border:none;">
+                    <a href="manage_students.php?rombel=<?php echo $c_id; ?>" class="btn btn-primary btn-sm">
                         <i class="uil uil-users-alt"></i> Kelola Anggota
                     </a>
-                    <button type="button" onclick="document.getElementById('modalEditClass<?php echo $c_id; ?>').classList.add('active')" class="btn btn-secondary btn-sm" style="padding:0.4rem 0.8rem;">
+                    <button type="button" onclick="document.getElementById('modalEditClass<?php echo $c_id; ?>').classList.add('active')" class="btn btn-secondary btn-sm">
                         <i class="uil uil-pen"></i> Edit
                     </button>
                     <form action="../actions/delete_class.php" method="POST" data-confirm="Apakah Anda yakin ingin menghapus rombel ini secara permanen? Seluruh siswa akan kehilangan akses kelasnya." style="margin:0;">
                          <input type="hidden" name="class_id" value="<?php echo $c_id; ?>">
-                         <button type="submit" class="btn btn-danger btn-sm" style="padding:0.4rem 0.8rem;"><i class="uil uil-trash-alt"></i> Hapus</button>
+                         <button type="submit" class="btn btn-danger btn-sm"><i class="uil uil-trash-alt"></i> Hapus</button>
                     </form>
                 </div>
             </div>
 
-            <!-- Modal EDIT untuk class spesifik -->
             <div id="modalEditClass<?php echo $c_id; ?>" class="modal-overlay">
-                <div class="modal-box">
+                <div class="modal-box modal-box--sm">
                     <div class="modal-header">
-                        <h3>Edit Nama Rombel</h3>
-                        <button onclick="document.getElementById('modalEditClass<?php echo $c_id; ?>').classList.remove('active')" class="btn-close"><i class="uil uil-times"></i></button>
+                        <h3><i class="uil uil-pen"></i> Edit Nama Rombel</h3>
+                        <button type="button" onclick="document.getElementById('modalEditClass<?php echo $c_id; ?>').classList.remove('active')" class="btn-close"><i class="uil uil-times"></i></button>
                     </div>
                     <form action="../actions/edit_class.php" method="POST">
                         <input type="hidden" name="class_id" value="<?php echo $c_id; ?>">
@@ -70,8 +68,7 @@ require_once '../components/header.php';
                     </form>
                 </div>
             </div>
-
-        <?php 
+        <?php
             endwhile;
         else:
         ?>
@@ -83,12 +80,11 @@ require_once '../components/header.php';
     </div>
 </div>
 
-<!-- Modal ADD CLASS -->
 <div id="modalAddClass" class="modal-overlay">
-    <div class="modal-box">
+    <div class="modal-box modal-box--sm">
         <div class="modal-header">
-            <h3 style="color:var(--text-main);"><i class="uil uil-plus-circle"></i> Buat Rombel Baru</h3>
-            <button onclick="document.getElementById('modalAddClass').classList.remove('active')" class="btn-close"><i class="uil uil-times"></i></button>
+            <h3><i class="uil uil-plus-circle"></i> Buat Rombel Baru</h3>
+            <button type="button" onclick="document.getElementById('modalAddClass').classList.remove('active')" class="btn-close"><i class="uil uil-times"></i></button>
         </div>
         <form action="../actions/add_class.php" method="POST">
             <div class="form-group">
@@ -99,14 +95,5 @@ require_once '../components/header.php';
         </form>
     </div>
 </div>
-
-<!-- Click Outside to Close Modals Component Script -->
-<script>
-window.onclick = function(event) {
-    if (event.target.classList.contains('modal-overlay')) {
-        event.target.classList.remove('active');
-    }
-}
-</script>
 
 <?php require_once '../components/footer.php'; ?>

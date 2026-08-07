@@ -4,6 +4,9 @@
     --bl-sidebar-collapsed: 78px;
 }
 
+/* Ensure admin shell never covers modals */
+.modal-overlay { z-index: 2000; }
+
 body.admin-body {
     display: block;
     overflow-x: hidden;

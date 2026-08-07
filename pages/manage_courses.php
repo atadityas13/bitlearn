@@ -42,7 +42,7 @@ require_once '../components/header.php';
                         <!-- Top Action Dots -->
                         <div style="position:absolute; top:1rem; right:1rem; display:flex; gap:0.5rem; z-index:10;">
                             <!-- Edit Button -->
-                            <button onclick="document.getElementById('modalEditCourse<?php echo $c_id; ?>').classList.add('active')" class="btn btn-secondary btn-sm" style="padding:0.3rem 0.5rem; background:rgba(0,0,0,0.3); border:none;" title="Edit Detail Course"><i class="uil uil-pen"></i></button>
+                            <button type="button" onclick="document.getElementById('modalEditCourse<?php echo $c_id; ?>').classList.add('active')" class="btn btn-secondary btn-sm" title="Edit Detail Course"><i class="uil uil-pen"></i></button>
                             <!-- Delete Button -->
                             <form action="../actions/delete_course.php" method="POST" data-confirm="PERINGATAN! Menghapus Course ini akan menghancurkan SEKALI GUS seluruh Bab Materi, Tugas, Kuis, dan Nilai di dalamnya. Anda yakin ingin melanjutkannya?" style="margin:0;">
                                 <input type="hidden" name="course_id" value="<?php echo $c_id; ?>">
@@ -107,10 +107,10 @@ require_once '../components/header.php';
 
                     <!-- MODAL EDIT COURSE -->
                     <div id="modalEditCourse<?php echo $c_id; ?>" class="modal-overlay">
-                        <div class="modal-box">
+                        <div class="modal-box modal-box--lg">
                             <div class="modal-header">
                                 <h3><i class="uil uil-pen"></i> Edit Info Course</h3>
-                                <button onclick="document.getElementById('modalEditCourse<?php echo $c_id; ?>').classList.remove('active')" class="btn-close"><i class="uil uil-times"></i></button>
+                                <button type="button" onclick="document.getElementById('modalEditCourse<?php echo $c_id; ?>').classList.remove('active')" class="btn-close"><i class="uil uil-times"></i></button>
                             </div>
                             <form action="../actions/edit_course.php" method="POST" enctype="multipart/form-data">
                                 <input type="hidden" name="course_id" value="<?php echo $c_id; ?>">
@@ -131,7 +131,7 @@ require_once '../components/header.php';
                                     <input type="file" name="thumbnail_file" class="form-control" accept="image/*" style="background:var(--background);">
                                     <small style="color:var(--text-muted);">Abaikan jika Anda tidak ingin mengganti sampul saat ini.</small>
                                 </div>
-                                <div class="form-group" style="background:rgba(0,0,0,0.2); padding:1rem; border-radius:var(--radius-sm); border:1px solid var(--border);">
+                                <div class="form-group modal-panel">
                                     <label class="form-label"><i class="uil uil-users-alt"></i> Rombel yang terhubung</label>
                                     <div style="font-size:0.8rem; color:var(--text-muted); margin-bottom:0.8rem;">
                                         Centang untuk menambah, hilangkan centang untuk mengeluarkan rombel dari course ini.
@@ -172,10 +172,10 @@ require_once '../components/header.php';
 
 <!-- Modal ADD COURSE -->
 <div id="modalAddCourse" class="modal-overlay">
-    <div class="modal-box">
+    <div class="modal-box modal-box--lg">
         <div class="modal-header">
             <h3><i class="uil uil-folder-plus"></i> Rakit Course Baru</h3>
-            <button onclick="document.getElementById('modalAddCourse').classList.remove('active')" class="btn-close"><i class="uil uil-times"></i></button>
+            <button type="button" onclick="document.getElementById('modalAddCourse').classList.remove('active')" class="btn-close"><i class="uil uil-times"></i></button>
         </div>
         <form action="../actions/add_course.php" method="POST" enctype="multipart/form-data">
             <div class="form-group">
@@ -186,10 +186,10 @@ require_once '../components/header.php';
                 <label class="form-label">Deskripsi Singkat</label>
                 <textarea name="description" class="form-control" rows="3" placeholder="Jelaskan mengenai pelajaran ini..." required></textarea>
             </div>
-            <div class="grid grid-cols-2">
+            <div class="grid grid-cols-2 modal-form-grid">
                 <div class="form-group">
                     <label class="form-label">Gambar Sampul (Opsional)</label>
-                    <input type="file" name="thumbnail_file" class="form-control" style="background:var(--background);" accept="image/*">
+                    <input type="file" name="thumbnail_file" class="form-control" accept="image/*">
                 </div>
                 <div class="form-group">
                     <label class="form-label">Kode Gabung Opsional</label>
@@ -197,7 +197,7 @@ require_once '../components/header.php';
                 </div>
             </div>
             
-            <div class="form-group" style="background:rgba(0,0,0,0.2); padding:1rem; border-radius:var(--radius-sm); border:1px solid var(--border);">
+            <div class="form-group modal-panel">
                 <label class="form-label"><i class="uil uil-users-alt"></i> Daftarkan Otomatis Rombel Berikut:</label>
                 <div style="font-size:0.8rem; color:var(--text-muted); margin-bottom:1rem;">Centang kelas yang siswanya berhak mendapat *Akses Langsung* ke Course ini tanpa input kode manual.</div>
                 <?php if($classes && $classes->num_rows > 0): ?>
@@ -216,16 +216,9 @@ require_once '../components/header.php';
                 <?php endif; ?>
             </div>
 
-            <button type="submit" class="btn btn-secondary btn-block" style="padding:1rem; font-size:1.1rem;"><i class="uil uil-rocket"></i> Luncurkan Course</button>
+            <button type="submit" class="btn btn-primary btn-block"><i class="uil uil-rocket"></i> Luncurkan Course</button>
         </form>
     </div>
 </div>
 
-<script>
-window.onclick = function(event) {
-    if (event.target.classList.contains('modal-overlay')) {
-        event.target.classList.remove('active');
-    }
-}
-</script>
 <?php require_once '../components/footer.php'; ?>

@@ -225,6 +225,56 @@ window.addEventListener('keydown', function(e) {
     if (e.key === 'Escape') closePreview();
 });
 
+// Uniform modal helpers (open/close + body scroll lock + Escape)
+(function () {
+    function anyModalOpen() {
+        return !!document.querySelector('.modal-overlay.active');
+    }
+    function syncBody() {
+        document.body.classList.toggle('modal-open', anyModalOpen());
+    }
+    function closeModal(overlay) {
+        if (!overlay) return;
+        overlay.classList.remove('active');
+        syncBody();
+    }
+    function openModal(overlay) {
+        if (!overlay) return;
+        overlay.classList.add('active');
+        syncBody();
+    }
+
+    // Observe class changes from existing onclick handlers
+    function bindOverlays() {
+        document.querySelectorAll('.modal-overlay').forEach((el) => {
+            if (el.dataset.modalBound === '1') return;
+            el.dataset.modalBound = '1';
+            obs.observe(el, { attributes: true, attributeFilter: ['class'] });
+        });
+    }
+    const obs = new MutationObserver(syncBody);
+    bindOverlays();
+    // In case modals are injected later
+    new MutationObserver(bindOverlays).observe(document.documentElement, { childList: true, subtree: true });
+
+    document.addEventListener('click', function (e) {
+        const overlay = e.target.closest('.modal-overlay');
+        if (overlay && e.target === overlay) {
+            closeModal(overlay);
+        }
+    });
+
+    document.addEventListener('keydown', function (e) {
+        if (e.key !== 'Escape') return;
+        const active = document.querySelector('.modal-overlay.active');
+        if (active) closeModal(active);
+    });
+
+    // Expose tiny API if needed
+    window.BitLearnModal = { open: openModal, close: closeModal, sync: syncBody };
+    syncBody();
+})();
+
 // Teacher admin shell: fixed sidebar + margin-left (desktop), offcanvas (mobile)
 (function () {
     const body = document.body;

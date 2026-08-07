@@ -143,14 +143,15 @@ require_once '../components/header.php';
                 </tr>
             </thead>
             <tbody>
-                <?php if($students && $students->num_rows > 0): ?>
-                    <?php
+                <?php
+                $edit_modals_html = '';
+                if($students && $students->num_rows > 0):
                     $no = $offset + 1;
                     while($s = $students->fetch_assoc()):
                         $s_id = $s['student_id']; $c_id = $s['class_id'];
                         $plain_pass = !empty($s['temp_password']) ? (string)$s['temp_password'] : '';
                         $row_key = $s_id . '_' . $c_id;
-                    ?>
+                ?>
                         <tr>
                             <td style="text-align:center; color:var(--text-muted);"><?php echo $no++; ?></td>
                             <td>
@@ -191,7 +192,9 @@ require_once '../components/header.php';
                                 </div>
                             </td>
                         </tr>
-
+                <?php
+                        ob_start();
+                ?>
                         <div id="modalEditStudent<?php echo $row_key; ?>" class="modal-overlay">
                             <div class="modal-box">
                                 <div class="modal-header">
@@ -227,13 +230,15 @@ require_once '../components/header.php';
                                             <?php endwhile; } ?>
                                         </select>
                                     </div>
-                                    <button type="submit" class="btn btn-primary btn-block" style="margin-top:2rem;"><i class="uil uil-save"></i> Perbarui Arsip</button>
+                                    <button type="submit" class="btn btn-primary btn-block"><i class="uil uil-save"></i> Perbarui Arsip</button>
                                 </form>
                             </div>
                         </div>
-
-                    <?php endwhile; ?>
-                <?php else: ?>
+                <?php
+                        $edit_modals_html .= ob_get_clean();
+                    endwhile;
+                else:
+                ?>
                     <tr><td colspan="6" style="text-align:center; padding:3rem; color:var(--text-muted);"><i class="uil uil-users-alt" style="font-size:2.5rem; display:block; margin-bottom:0.5rem;"></i>Tidak ada siswa yang cocok dengan filter/pencarian ini.</td></tr>
                 <?php endif; ?>
             </tbody>
@@ -285,6 +290,8 @@ require_once '../components/header.php';
     </div>
 </div>
 
+<?php echo $edit_modals_html ?? ''; ?>
+
 <div id="modalAddStudent" class="modal-overlay">
     <div class="modal-box">
         <div class="modal-header">
@@ -318,7 +325,7 @@ require_once '../components/header.php';
                     <input type="text" name="username" class="form-control" placeholder="NIP / NISN" required>
                 </div>
 
-                <p style="background:rgba(245, 158, 11, 0.1); border:1px solid rgba(245, 158, 11, 0.3); padding:1rem; border-radius:var(--radius-sm); color:var(--text-main); font-size:0.85rem; margin-bottom:1.5rem;">
+                <p class="modal-note">
                     <i class="uil uil-lock-access" style="color:var(--warning);"></i> <b>Kriptografi Otomatis:</b> Sandi sepanjang 6 digit acak akan dibuatkan oleh sistem dan diletakkan pada tabel setelah berhasil registrasi.
                 </p>
 
@@ -331,24 +338,25 @@ require_once '../components/header.php';
 </div>
 
 <div id="modalImportExcel" class="modal-overlay">
-    <div class="modal-box" style="max-width:600px;">
+    <div class="modal-box modal-box--lg">
         <div class="modal-header">
             <h3><i class="uil uil-file-upload"></i> Impor Siswa Massal (Excel)</h3>
             <button type="button" onclick="document.getElementById('modalImportExcel').classList.remove('active')" class="btn-close"><i class="uil uil-times"></i></button>
         </div>
-
-        <div style="background:rgba(13, 148, 136, 0.1); border:1px solid rgba(13, 148, 136, 0.3); padding:1rem; border-radius:var(--radius-sm); margin-bottom:1.5rem; text-align:center;">
-            <i class="uil uil-file-download-alt" style="font-size:3rem; color:var(--secondary); display:block; margin-bottom:0.5rem;"></i>
-            <h4 style="color:var(--secondary);">1. Unduh Template Dasar (.xlsx)</h4>
+        <div class="modal-body">
+        <div class="modal-note" style="text-align:center;">
+            <i class="uil uil-file-download-alt" style="font-size:2.4rem; color:var(--secondary); display:block; margin-bottom:0.5rem;"></i>
+            <h4 style="color:var(--secondary); margin:0 0 0.4rem;">1. Unduh Template Dasar (.xlsx)</h4>
             <p style="color:var(--text-muted); font-size:0.9rem; margin-bottom:1rem;">Unduh format lajur standar BitLearn, isikan data murid dari sekolah Anda secara mandiri di perangkat, lalu Simpan (*Save*).</p>
             <button type="button" onclick="downloadStudentTemplate()" class="btn btn-secondary btn-sm" style="border-color:var(--secondary); color:var(--secondary);"><i class="uil uil-arrow-to-bottom"></i> Tarik Format Excel Template</button>
         </div>
 
-        <div style="padding:1.5rem; border:2px dashed var(--border); border-radius:var(--radius); text-align:center; position:relative; overflow:hidden;" id="dropzoneExcel">
+        <div style="padding:1.25rem; border:2px dashed var(--border); border-radius:var(--radius); text-align:center; position:relative; overflow:hidden;" id="dropzoneExcel">
             <h4 style="margin-bottom:0.5rem;">2. Unggah File yang Sudah Terisi</h4>
             <p style="color:var(--text-muted); font-size:0.85rem; margin-bottom:1rem;">Ketuk atau jatuhkan berkas **.xlsx** pendaftaran Anda kemari.</p>
             <input type="file" id="excelStudentUpload" accept=".xlsx, .xls" style="position:absolute; top:0; left:0; width:100%; height:100%; opacity:0; cursor:pointer;" onchange="handleExcelUpload(this)">
             <div id="excelLoadingState" style="display:none; color:var(--warning);"><i class="uil uil-spinner-alt" style="animation: spin 1s linear infinite; display:inline-block;"></i> Mesin memproses pendaftaran...</div>
+        </div>
         </div>
     </div>
 </div>
@@ -510,12 +518,6 @@ require_once '../components/header.php';
 
 <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
 <script>
-window.onclick = function(event) {
-    if (event.target.classList.contains('modal-overlay')) {
-        event.target.classList.remove('active');
-    }
-};
-
 function copyText(value, btn) {
     if (!value) return;
     const done = () => {

@@ -514,7 +514,7 @@ require_once '../components/header.php';
                 Siswa yang masuk lewat kode gabung / NISN manual tidak terpengaruh.
             </p>
             <?php if (!empty($teacher_classes)): ?>
-                <div class="check-grid" style="padding:0.85rem; background:rgba(0,0,0,0.2); border-radius:var(--radius-sm); border:1px solid var(--border); margin-bottom:1.25rem;">
+                <div class="check-grid modal-panel" style="margin-bottom:1.25rem;">
                     <?php foreach ($teacher_classes as $cl):
                         $cid = (int)$cl['id'];
                         $checked = isset($linked_class_ids[$cid]) ? 'checked' : '';
@@ -528,7 +528,7 @@ require_once '../components/header.php';
             <?php else: ?>
                 <p style="color:var(--warning); margin-bottom:1rem;">Belum ada rombel. Buat dulu di Manajemen Rombel.</p>
             <?php endif; ?>
-            <button type="submit" class="btn btn-primary btn-block" style="padding:0.9rem;"><i class="uil uil-save"></i> Simpan Daftar Kelas</button>
+            <button type="submit" class="btn btn-primary btn-block"><i class="uil uil-save"></i> Simpan Daftar Kelas</button>
         </form>
     </div>
 </div>
@@ -538,7 +538,7 @@ require_once '../components/header.php';
     <div class="modal-box">
         <div class="modal-header">
             <h3><i class="uil uil-layer-group"></i> Rancang Modul Baru</h3>
-            <button onclick="document.getElementById('modalAddModule').classList.remove('active')" class="btn-close"><i class="uil uil-times"></i></button>
+            <button type="button" onclick="document.getElementById('modalAddModule').classList.remove('active')" class="btn-close"><i class="uil uil-times"></i></button>
         </div>
         <form action="../actions/add_module.php" method="POST">
             <input type="hidden" name="course_id" value="<?php echo $course_id; ?>">
@@ -552,19 +552,19 @@ require_once '../components/header.php';
                     <span>Langsung Publikasikan ke Siswa</span>
                 </label>
             </div>
-            <button type="submit" class="btn btn-primary btn-block" style="padding:1rem; font-size:1.1rem;"><i class="uil uil-save"></i> Konfirmasi Perancangan Modul</button>
+            <button type="submit" class="btn btn-primary btn-block"><i class="uil uil-save"></i> Konfirmasi Perancangan Modul</button>
         </form>
     </div>
 </div>
 </div>
 <!-- Modal DETAIL PROGRES SISWA -->
 <div id="modalStudentProgress" class="modal-overlay">
-    <div class="modal-box" style="max-width:560px; max-height:85vh; display:flex; flex-direction:column;">
+    <div class="modal-box modal-box--lg">
         <div class="modal-header">
-            <h3 style="margin:0;"><i class="uil uil-clipboard-notes"></i> Detail Progres Siswa</h3>
+            <h3><i class="uil uil-clipboard-notes"></i> Detail Progres Siswa</h3>
             <button type="button" onclick="document.getElementById('modalStudentProgress').classList.remove('active')" class="btn-close"><i class="uil uil-times"></i></button>
         </div>
-        <div id="studentProgressBody" style="overflow-y:auto; flex:1; padding:0.25rem 0.15rem 0.5rem;">
+        <div id="studentProgressBody" class="modal-body">
             <div style="text-align:center; padding:2rem; color:var(--text-muted);">Memuat...</div>
         </div>
     </div>
@@ -601,12 +601,6 @@ document.querySelectorAll('.student-progress-row').forEach(function(row) {
         }
     });
 });
-
-window.onclick = function(event) {
-    if (event.target.classList.contains('modal-overlay')) {
-        event.target.classList.remove('active');
-    }
-}
 
 function escapeHtml(str) {
     return String(str ?? '')
