@@ -38,12 +38,14 @@ if (!empty($modules)) {
 // Get Assignments
 $assign_qs = $conn->query("SELECT * FROM assignments WHERE course_id = $course_id ORDER BY id DESC");
 
-// Analytics: Total lessons in the course
+// Analytics: Total lessons visible to students (published module + published lesson)
 $total_lessons_query = $conn->query("
     SELECT COUNT(l.id) as sum 
     FROM lessons l 
     JOIN modules m ON l.module_id = m.id 
     WHERE m.course_id = $course_id
+      AND m.is_published = 1
+      AND l.is_published = 1
 ");
 $all_lesson_count = $total_lessons_query ? (int)$total_lessons_query->fetch_assoc()['sum'] : 0;
 
@@ -93,6 +95,8 @@ $tracker_query = $conn->query("
             JOIN lessons l ON p.lesson_id = l.id 
             JOIN modules m ON l.module_id = m.id 
             WHERE m.course_id = $course_id AND p.student_id = u.id
+              AND m.is_published = 1
+              AND l.is_published = 1
         ) as completed_count,
         (
             SELECT MAX(p.id)
@@ -100,6 +104,8 @@ $tracker_query = $conn->query("
             JOIN lessons l ON p.lesson_id = l.id 
             JOIN modules m ON l.module_id = m.id 
             WHERE m.course_id = $course_id AND p.student_id = u.id
+              AND m.is_published = 1
+              AND l.is_published = 1
         ) as last_completed
     FROM users u
     JOIN (

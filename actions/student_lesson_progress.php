@@ -34,13 +34,17 @@ if (!$studentRes || $studentRes->num_rows === 0) {
 }
 $student = $studentRes->fetch_assoc();
 
+// Hanya materi yang tampil ke siswa (modul + materi published)
 $completedIds = [];
 $progRes = $conn->query("
     SELECT p.lesson_id
     FROM user_progress p
     INNER JOIN lessons l ON p.lesson_id = l.id
     INNER JOIN modules m ON l.module_id = m.id
-    WHERE m.course_id = $courseId AND p.student_id = $studentId
+    WHERE m.course_id = $courseId
+      AND p.student_id = $studentId
+      AND m.is_published = 1
+      AND l.is_published = 1
 ");
 if ($progRes) {
     while ($row = $progRes->fetch_assoc()) {
@@ -55,6 +59,7 @@ $modRes = $conn->query("
     SELECT id, title, order_num
     FROM modules
     WHERE course_id = $courseId
+      AND is_published = 1
     ORDER BY order_num ASC, id ASC
 ");
 if ($modRes) {
@@ -65,6 +70,7 @@ if ($modRes) {
             SELECT id, title, content_type, order_num
             FROM lessons
             WHERE module_id = $mid
+              AND is_published = 1
             ORDER BY order_num ASC, id ASC
         ");
         if ($lesRes) {
@@ -83,6 +89,7 @@ if ($modRes) {
                 ];
             }
         }
+        // Bab tanpa materi tampil tetap ditampilkan agar struktur jelas
         $modules[] = [
             'id' => $mid,
             'title' => $mod['title'],
