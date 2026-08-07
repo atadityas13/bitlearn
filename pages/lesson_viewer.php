@@ -150,7 +150,11 @@ if ($current_assignment) {
         $existing_submission = $chk->fetch_assoc();
     }
     $dueTs = strtotime((string) ($current_assignment['due_date'] ?? ''));
-    $assignment_closed = ($dueTs !== false && $dueTs < time());
+    $dueOpen = $conn->query("SELECT id FROM assignments WHERE id = $ca_id AND due_date > NOW() LIMIT 1");
+    $assignment_closed = !($dueOpen && $dueOpen->num_rows > 0);
+    if (!$assignment_closed && $dueTs !== false && $dueTs < time()) {
+        $assignment_closed = true;
+    }
 }
 
 $page_title = $course['title'] . ' | Pelajar';
@@ -363,10 +367,10 @@ require_once '../components/header.php';
                             </div>
                         <?php elseif ($assignment_closed): ?>
                             <div
-                                style="background:rgba(239, 68, 68, 0.1); border:1px solid rgba(239, 68, 68, 0.3); padding:2rem; border-radius:var(--radius-sm); text-align:center;">
+                                style="background:rgba(239, 68, 68, 0.1); border:1px solid rgba(239, 68, 68, 0.35); padding:2rem; border-radius:var(--radius-sm); text-align:center;">
                                 <i class="uil uil-clock-eight" style="font-size:3rem; color:var(--danger); display:block; margin-bottom:0.8rem;"></i>
-                                <h3 style="color:var(--danger); margin-bottom:0.5rem;">Batas Waktu Habis</h3>
-                                <p style="color:var(--text-muted); margin:0;">Pengumpulan tugas sudah ditutup. Anda tidak dapat mengunggah jawaban lagi.</p>
+                                <h3 style="color:var(--danger); margin-bottom:0.5rem;">Batas pengumpulan tugas sudah berakhir</h3>
+                                <p style="color:var(--danger); margin:0; opacity:0.9;">Tombol unggah dinonaktifkan karena melewati deadline.</p>
                             </div>
                         <?php else: ?>
                             <form action="../actions/submit_upload.php" method="POST" enctype="multipart/form-data"

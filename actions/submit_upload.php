@@ -18,8 +18,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         $dueTs = strtotime((string)$asn['due_date']);
-        if ($dueTs !== false && $dueTs < time()) {
-            $_SESSION['error'] = 'Batas waktu pengumpulan sudah lewat. Tugas tidak dapat dikumpulkan.';
+        $stillOpen = $conn->query("SELECT id FROM assignments WHERE id = $assignment_id AND due_date > NOW() LIMIT 1");
+        if (($dueTs !== false && $dueTs < time()) || !$stillOpen || $stillOpen->num_rows === 0) {
+            $_SESSION['error'] = 'Batas pengumpulan tugas sudah berakhir.';
             header("Location: ../pages/lesson_viewer.php?course_id=$course_id&assignment_id=$assignment_id");
             exit;
         }

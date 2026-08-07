@@ -562,7 +562,11 @@ if (preg_match('#^/assignments/(\d+)$#', $route, $m) && $method === 'GET') {
     }
 
     $dueTs = strtotime((string) ($asn['due_date'] ?? ''));
-    $isClosed = ($dueTs !== false && $dueTs < time());
+    $dueOpen = $conn->query("SELECT id FROM assignments WHERE id = $assignmentId AND due_date > NOW() LIMIT 1");
+    $isClosed = !($dueOpen && $dueOpen->num_rows > 0);
+    if (!$isClosed && $dueTs !== false && $dueTs < time()) {
+        $isClosed = true;
+    }
     $canSubmit = !$locked && $submission === null && !$isClosed;
 
     ApiResponse::success([
@@ -602,7 +606,11 @@ if (preg_match('#^/assignments/(\d+)/submit$#', $route, $m) && $method === 'POST
 
     $dueTs = strtotime((string) ($asn['due_date'] ?? ''));
     if ($dueTs !== false && $dueTs < time()) {
-        ApiResponse::error('Batas waktu pengumpulan sudah lewat. Tugas tidak dapat dikumpulkan.', 422);
+        ApiResponse::error('Batas pengumpulan tugas sudah berakhir.', 422);
+    }
+    $stillOpen = $conn->query("SELECT id FROM assignments WHERE id = $assignmentId AND due_date > NOW() LIMIT 1");
+    if (!$stillOpen || $stillOpen->num_rows === 0) {
+        ApiResponse::error('Batas pengumpulan tugas sudah berakhir.', 422);
     }
 
     $existing = $conn->query("SELECT id FROM submissions WHERE student_id = $studentId AND assignment_id = $assignmentId");
