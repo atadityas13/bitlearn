@@ -238,6 +238,166 @@ foreach ($grade_columns as $col) {
     $legend_groups[$g][] = $col;
 }
 
+// --- Ekspor Excel (SpreadsheetML, dengan garis tabel) ---
+if (
+    isset($_GET['export']) && $_GET['export'] === 'excel'
+    && $ready && !empty($grade_columns) && !empty($students)
+) {
+    $course_title = (string)$selected_course['title'];
+    $class_name = (string)$selected_class['name'];
+    $col_count = 3 + count($grade_columns); // No, NISN, Nama + nilai
+    $merge_across = max(0, $col_count - 1);
+
+    $safe_file = preg_replace('/[^a-zA-Z0-9_\-]+/', '_', $course_title . '_' . $class_name);
+    $safe_file = trim((string)$safe_file, '_');
+    if ($safe_file === '') {
+        $safe_file = 'Rekap_Nilai';
+    }
+    $filename = 'Rekap_Nilai_' . $safe_file . '.xls';
+
+    $xml_esc = static function ($s): string {
+        return htmlspecialchars((string)$s, ENT_QUOTES | ENT_XML1, 'UTF-8');
+    };
+
+    $border_xml = '
+      <Borders>
+        <Border ss:Position="Left" ss:LineStyle="Continuous" ss:Weight="1"/>
+        <Border ss:Position="Right" ss:LineStyle="Continuous" ss:Weight="1"/>
+        <Border ss:Position="Top" ss:LineStyle="Continuous" ss:Weight="1"/>
+        <Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1"/>
+      </Borders>';
+
+    header('Content-Type: application/vnd.ms-excel; charset=UTF-8');
+    header('Content-Disposition: attachment; filename="' . $filename . '"');
+    header('Pragma: no-cache');
+    header('Expires: 0');
+
+    echo '<?xml version="1.0" encoding="UTF-8"?>' . "\n";
+    echo '<?mso-application progid="Excel.Sheet"?>' . "\n";
+    ?>
+<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet"
+ xmlns:o="urn:schemas-microsoft-com:office:office"
+ xmlns:x="urn:schemas-microsoft-com:office:excel"
+ xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet"
+ xmlns:html="http://www.w3.org/TR/REC-html40">
+ <Styles>
+  <Style ss:ID="Default" ss:Name="Normal">
+   <Alignment ss:Vertical="Center"/>
+   <Font ss:FontName="Calibri" ss:Size="11"/>
+  </Style>
+  <Style ss:ID="Title">
+   <Font ss:FontName="Calibri" ss:Size="14" ss:Bold="1"/>
+   <Alignment ss:Horizontal="Left" ss:Vertical="Center"/>
+  </Style>
+  <Style ss:ID="Subtitle">
+   <Font ss:FontName="Calibri" ss:Size="12" ss:Bold="1"/>
+   <Alignment ss:Horizontal="Left" ss:Vertical="Center"/>
+  </Style>
+  <Style ss:ID="Header">
+   <Font ss:FontName="Calibri" ss:Size="11" ss:Bold="1"/>
+   <Alignment ss:Horizontal="Center" ss:Vertical="Center" ss:WrapText="1"/>
+   <Interior ss:Color="#F3F4F6" ss:Pattern="Solid"/>
+   <?php echo $border_xml; ?>
+  </Style>
+  <Style ss:ID="Cell">
+   <Alignment ss:Horizontal="Left" ss:Vertical="Center"/>
+   <?php echo $border_xml; ?>
+  </Style>
+  <Style ss:ID="CellCenter">
+   <Alignment ss:Horizontal="Center" ss:Vertical="Center"/>
+   <?php echo $border_xml; ?>
+  </Style>
+  <Style ss:ID="CellText">
+   <Alignment ss:Horizontal="Left" ss:Vertical="Center"/>
+   <NumberFormat ss:Format="@"/>
+   <?php echo $border_xml; ?>
+  </Style>
+  <Style ss:ID="LegendTitle">
+   <Font ss:FontName="Calibri" ss:Size="11" ss:Bold="1"/>
+  </Style>
+  <Style ss:ID="LegendGroup">
+   <Font ss:FontName="Calibri" ss:Size="11" ss:Bold="1"/>
+  </Style>
+  <Style ss:ID="LegendItem">
+   <Font ss:FontName="Calibri" ss:Size="11"/>
+  </Style>
+ </Styles>
+ <Worksheet ss:Name="Rekap Nilai">
+  <Table>
+   <Column ss:Width="40"/>
+   <Column ss:Width="110"/>
+   <Column ss:Width="180"/>
+<?php foreach ($grade_columns as $_c): ?>
+   <Column ss:Width="70"/>
+<?php endforeach; ?>
+
+   <Row ss:Height="22">
+    <Cell ss:MergeAcross="<?php echo $merge_across; ?>" ss:StyleID="Title">
+     <Data ss:Type="String"><?php echo $xml_esc('Rekap Nilai ' . $course_title); ?></Data>
+    </Cell>
+   </Row>
+   <Row ss:Height="20">
+    <Cell ss:MergeAcross="<?php echo $merge_across; ?>" ss:StyleID="Subtitle">
+     <Data ss:Type="String"><?php echo $xml_esc('Kelas ' . $class_name); ?></Data>
+    </Cell>
+   </Row>
+   <Row/>
+
+   <Row ss:Height="22">
+    <Cell ss:StyleID="Header"><Data ss:Type="String">No</Data></Cell>
+    <Cell ss:StyleID="Header"><Data ss:Type="String">NISN</Data></Cell>
+    <Cell ss:StyleID="Header"><Data ss:Type="String">Nama</Data></Cell>
+<?php foreach ($grade_columns as $col): ?>
+    <Cell ss:StyleID="Header"><Data ss:Type="String"><?php echo $xml_esc($col['label']); ?></Data></Cell>
+<?php endforeach; ?>
+   </Row>
+<?php
+    $no = 1;
+    foreach ($students as $st):
+        $sid = (int)$st['id'];
+        $nisn = (string)($st['nisn'] ?? '');
+?>
+   <Row>
+    <Cell ss:StyleID="CellCenter"><Data ss:Type="Number"><?php echo $no++; ?></Data></Cell>
+    <Cell ss:StyleID="CellText"><Data ss:Type="String"><?php echo $xml_esc($nisn); ?></Data></Cell>
+    <Cell ss:StyleID="Cell"><Data ss:Type="String"><?php echo $xml_esc($st['name']); ?></Data></Cell>
+<?php foreach ($grade_columns as $col):
+        $ckey = $col['key'];
+        if (isset($scores[$sid][$ckey])):
+?>
+    <Cell ss:StyleID="CellCenter"><Data ss:Type="Number"><?php echo (int)$scores[$sid][$ckey]; ?></Data></Cell>
+<?php else: ?>
+    <Cell ss:StyleID="CellCenter"><Data ss:Type="String">-</Data></Cell>
+<?php endif; endforeach; ?>
+   </Row>
+<?php endforeach; ?>
+
+   <Row/>
+   <Row>
+    <Cell ss:MergeAcross="<?php echo $merge_across; ?>" ss:StyleID="LegendTitle">
+     <Data ss:Type="String">Keterangan kolom nilai</Data>
+    </Cell>
+   </Row>
+<?php foreach ($legend_groups as $group_name => $items): ?>
+   <Row>
+    <Cell ss:MergeAcross="<?php echo $merge_across; ?>" ss:StyleID="LegendGroup">
+     <Data ss:Type="String"><?php echo $xml_esc($group_name); ?></Data>
+    </Cell>
+   </Row>
+<?php foreach ($items as $col): ?>
+   <Row>
+    <Cell ss:MergeAcross="<?php echo $merge_across; ?>" ss:StyleID="LegendItem">
+     <Data ss:Type="String"><?php echo $xml_esc($col['label'] . ' : ' . $col['title']); ?></Data>
+    </Cell>
+   </Row>
+<?php endforeach; endforeach; ?>
+  </Table>
+ </Worksheet>
+</Workbook>
+<?php
+    exit;
+}
+
 $page_title = 'Rekap Nilai';
 require_once '../components/header.php';
 ?>
@@ -315,21 +475,27 @@ require_once '../components/header.php';
             </p>
         </div>
     <?php else: ?>
-        <div class="glass-card" style="padding:1rem 1.15rem 0.5rem; margin-bottom:0.75rem;">
+        <div class="glass-card" style="padding:1rem 1.15rem; margin-bottom:0.75rem; display:flex; justify-content:space-between; align-items:center; gap:0.75rem; flex-wrap:wrap;">
             <div style="font-size:0.95rem;">
                 <b><?php echo htmlspecialchars($selected_course['title']); ?></b>
                 <span class="text-muted"> · </span>
                 <span><?php echo htmlspecialchars($selected_class['name']); ?></span>
                 <span class="text-muted"> · <?php echo count($students); ?> siswa · <?php echo count($grade_columns); ?> kolom nilai</span>
             </div>
+            <a href="teacher_grade_recap.php?course_id=<?php echo $course_id; ?>&amp;class_id=<?php echo $class_id; ?>&amp;export=excel"
+               class="btn btn-secondary btn-sm"
+               style="border-color:var(--secondary); color:var(--secondary); background:rgba(13, 148, 136, 0.1);">
+                <i class="uil uil-file-export"></i> Ekspor Excel
+            </a>
         </div>
 
         <div class="table-responsive glass-card" style="padding:1rem;">
-            <table class="table recap-table" style="min-width:<?php echo 280 + (count($grade_columns) * 88); ?>px; margin-top:0;">
+            <table class="table recap-table" style="min-width:<?php echo 360 + (count($grade_columns) * 88); ?>px; margin-top:0;">
                 <thead>
                     <tr>
                         <th style="width:52px; text-align:center;">No</th>
-                        <th style="min-width:180px;">Nama Siswa</th>
+                        <th style="min-width:110px;">NISN</th>
+                        <th style="min-width:180px;">Nama</th>
                         <?php foreach ($grade_columns as $col): ?>
                             <th style="text-align:center; white-space:nowrap;" title="<?php echo htmlspecialchars($col['legend']); ?>">
                                 <?php echo htmlspecialchars($col['label']); ?>
@@ -343,12 +509,8 @@ require_once '../components/header.php';
                     ?>
                         <tr>
                             <td style="text-align:center; color:var(--text-muted);"><?php echo $no++; ?></td>
-                            <td>
-                                <b><?php echo htmlspecialchars($st['name']); ?></b>
-                                <?php if (!empty($st['nisn'])): ?>
-                                    <div style="font-size:0.78rem; color:var(--text-muted);">NISN: <?php echo htmlspecialchars($st['nisn']); ?></div>
-                                <?php endif; ?>
-                            </td>
+                            <td><?php echo htmlspecialchars((string)($st['nisn'] ?? '')); ?></td>
+                            <td><b><?php echo htmlspecialchars($st['name']); ?></b></td>
                             <?php foreach ($grade_columns as $col):
                                 $ckey = $col['key'];
                                 $has = isset($scores[$sid][$ckey]);
