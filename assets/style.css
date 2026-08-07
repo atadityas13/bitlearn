@@ -1,12 +1,13 @@
 @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap');
 
 :root {
-    /* Modern orange + warm white (BitLearn brand) */
-    --primary: #F97316;
-    --primary-hover: #EA580C;
-    --primary-soft: #FFF7ED;
-    --primary-muted: #FFEDD5;
-    --secondary: #0D9488; /* teal — pairs cleanly with orange */
+    /* Modern orange + warm white — matched to BitLearn app (#FF6B00) */
+    --primary: #FF6B00;
+    --primary-hover: #E85F00;
+    --primary-deep: #D45200;
+    --primary-soft: #FFF1E6;
+    --primary-muted: #FFE0C2;
+    --secondary: #0D9488;
     --background: #FFF8F3;
     --surface: #FFFFFF;
     --surface-glass: rgba(255, 255, 255, 0.92);
@@ -24,7 +25,7 @@
     --content-pad: 2rem;
     --content-max: 1400px;
     --shadow-card: 0 10px 28px -14px rgba(28, 25, 23, 0.12);
-    --shadow-primary: 0 8px 20px -6px rgba(249, 115, 22, 0.45);
+    --shadow-primary: 0 8px 20px -6px rgba(255, 107, 0, 0.45);
 }
 
 * {
@@ -51,10 +52,10 @@ body.admin-body {
 /* Base gradients and dynamic backgrounds */
 .bg-gradient-mesh {
     background:
-        radial-gradient(at 0% 0%, rgba(249, 115, 22, 0.14) 0px, transparent 50%),
+        radial-gradient(at 0% 0%, rgba(255, 107, 0, 0.12) 0px, transparent 50%),
         radial-gradient(at 100% 0%, rgba(13, 148, 136, 0.08) 0px, transparent 45%),
-        radial-gradient(at 100% 100%, rgba(249, 115, 22, 0.1) 0px, transparent 50%),
-        radial-gradient(at 0% 100%, rgba(251, 146, 60, 0.08) 0px, transparent 45%);
+        radial-gradient(at 100% 100%, rgba(255, 107, 0, 0.09) 0px, transparent 50%),
+        radial-gradient(at 0% 100%, rgba(255, 138, 61, 0.08) 0px, transparent 45%);
     background-color: var(--background);
     background-attachment: fixed;
 }
@@ -93,7 +94,7 @@ body.admin-body {
 .navbar-brand {
     font-size: 1.75rem;
     font-weight: 800;
-    background: linear-gradient(135deg, #F97316, #FB923C);
+    background: linear-gradient(135deg, #FF6B00, #FF8A3D);
     background-clip: text;
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
@@ -198,7 +199,7 @@ body.admin-body {
 .form-control:focus {
     outline: none;
     border-color: var(--primary);
-    box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.2);
+    box-shadow: 0 0 0 3px rgba(255, 107, 0, 0.2);
     background: #fff;
 }
 

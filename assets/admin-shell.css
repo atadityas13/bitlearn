@@ -10,7 +10,7 @@ body.admin-body {
     min-height: 100vh;
 }
 
-/* Fixed sidebar — never overlays content because main has matching margin */
+/* Fixed sidebar — brand orange with graphic depth */
 #blSidebar {
     position: fixed;
     top: 0;
@@ -20,41 +20,80 @@ body.admin-body {
     z-index: 1030;
     display: flex;
     flex-direction: column;
-    background: #fff;
-    border-right: 1px solid var(--border);
-    box-shadow: 4px 0 24px rgba(28, 25, 23, 0.06);
+    color: #fff;
+    background-color: #FF6B00;
+    background-image:
+        radial-gradient(ellipse 120% 80% at 0% 0%, rgba(255, 255, 255, 0.28) 0%, transparent 55%),
+        radial-gradient(ellipse 90% 70% at 110% 100%, rgba(212, 82, 0, 0.75) 0%, transparent 50%),
+        radial-gradient(circle at 80% 20%, rgba(255, 138, 61, 0.45) 0%, transparent 35%),
+        linear-gradient(165deg, #FF8A3D 0%, #FF6B00 42%, #E85F00 78%, #D45200 100%);
+    border-right: none;
+    box-shadow: 8px 0 32px rgba(212, 82, 0, 0.28);
     overflow: hidden;
     transition: width 0.2s ease;
 }
 
+/* Soft geometric mesh overlay */
+#blSidebar::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    opacity: 0.22;
+    background-image:
+        linear-gradient(rgba(255,255,255,0.14) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.14) 1px, transparent 1px);
+    background-size: 28px 28px;
+    mask-image: linear-gradient(180deg, rgba(0,0,0,0.55), transparent 70%);
+    -webkit-mask-image: linear-gradient(180deg, rgba(0,0,0,0.55), transparent 70%);
+}
+
+/* Floating glow orbs */
+#blSidebar::after {
+    content: "";
+    position: absolute;
+    width: 180px;
+    height: 180px;
+    right: -70px;
+    bottom: 18%;
+    border-radius: 50%;
+    pointer-events: none;
+    background: radial-gradient(circle, rgba(255,255,255,0.22) 0%, transparent 68%);
+    filter: blur(2px);
+}
+
 #blSidebar .sidebar-header {
+    position: relative;
+    z-index: 1;
     flex: 0 0 auto;
     display: flex;
     justify-content: center;
     align-items: center;
-    padding: 1.25rem 1rem;
-    border-bottom: 1px solid var(--border);
+    padding: 1.35rem 1rem 1.1rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.18);
 }
 
 #blSidebar .sidebar-header img {
     width: 150px;
     max-width: 100%;
     height: auto;
-    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
+    filter: drop-shadow(0 4px 10px rgba(0,0,0,0.25)) brightness(1.05);
 }
 
 #blSidebar .sidebar-nav {
+    position: relative;
+    z-index: 1;
     flex: 1 1 auto;
     overflow-y: auto;
     overflow-x: hidden;
-    padding: 1rem 0;
+    padding: 1rem 0.65rem;
     scrollbar-width: thin;
-    scrollbar-color: rgba(148,163,184,0.35) transparent;
+    scrollbar-color: rgba(255,255,255,0.45) transparent;
 }
 
 #blSidebar .sidebar-nav::-webkit-scrollbar { width: 6px; }
 #blSidebar .sidebar-nav::-webkit-scrollbar-thumb {
-    background: rgba(148,163,184,0.35);
+    background: rgba(255,255,255,0.35);
     border-radius: 8px;
 }
 
@@ -62,13 +101,15 @@ body.admin-body {
     display: flex;
     align-items: center;
     gap: 0.85rem;
-    padding: 0.85rem 1.35rem;
-    color: var(--text-muted);
+    margin: 0.15rem 0;
+    padding: 0.8rem 1rem;
+    color: rgba(255, 255, 255, 0.88);
     text-decoration: none;
     font-weight: 500;
-    border-left: 3px solid transparent;
+    border-left: none;
+    border-radius: 12px;
     white-space: nowrap;
-    transition: background 0.15s, color 0.15s;
+    transition: background 0.15s, color 0.15s, transform 0.15s, box-shadow 0.15s;
 }
 
 #blSidebar .sidebar-link i {
@@ -76,20 +117,33 @@ body.admin-body {
     flex: 0 0 auto;
     width: 1.25rem;
     text-align: center;
+    opacity: 0.95;
 }
 
-#blSidebar .sidebar-link:hover,
+#blSidebar .sidebar-link:hover {
+    color: #fff;
+    background: rgba(255, 255, 255, 0.16);
+}
+
 #blSidebar .sidebar-link.active {
-    color: var(--primary-hover);
-    background: var(--primary-soft);
-    border-left-color: var(--primary);
+    color: #FF6B00;
+    background: #fff;
+    font-weight: 650;
+    box-shadow: 0 8px 18px rgba(0, 0, 0, 0.12);
+}
+
+#blSidebar .sidebar-link.active i {
+    opacity: 1;
 }
 
 #blSidebar .sidebar-footer {
+    position: relative;
+    z-index: 1;
     flex: 0 0 auto;
     padding: 1rem;
-    border-top: 1px solid var(--border);
-    background: var(--primary-soft);
+    border-top: 1px solid rgba(255, 255, 255, 0.18);
+    background: linear-gradient(180deg, rgba(0,0,0,0.08), rgba(0,0,0,0.18));
+    backdrop-filter: blur(6px);
 }
 
 #blSidebar .profile-row {
@@ -97,6 +151,19 @@ body.admin-body {
     align-items: center;
     gap: 0.75rem;
     margin-bottom: 0.75rem;
+}
+
+#blSidebar .profile-row img,
+#blSidebar .profile-row > div:first-child {
+    border-color: rgba(255,255,255,0.85) !important;
+}
+
+#blSidebar .user-meta > div:first-child {
+    color: #fff !important;
+}
+
+#blSidebar .user-meta > div:last-child {
+    color: rgba(255, 255, 255, 0.75) !important;
 }
 
 #blSidebar .profile-actions {
@@ -115,6 +182,25 @@ body.admin-body {
     min-height: 2.35rem;
     padding: 0.4rem 0.65rem;
     font-size: 0.85rem;
+}
+
+#blSidebar .profile-actions .btn-profile {
+    background: rgba(255, 255, 255, 0.95) !important;
+    border-color: transparent !important;
+    color: #E85F00 !important;
+}
+#blSidebar .profile-actions .btn-profile:hover {
+    background: #fff !important;
+    color: #D45200 !important;
+}
+#blSidebar .profile-actions .btn-logout {
+    background: rgba(0, 0, 0, 0.22) !important;
+    border: 1px solid rgba(255, 255, 255, 0.25) !important;
+    color: #fff !important;
+}
+#blSidebar .profile-actions .btn-logout:hover {
+    background: rgba(220, 38, 38, 0.92) !important;
+    border-color: transparent !important;
 }
 
 /* Main column — always offset by sidebar width */
@@ -186,7 +272,7 @@ body.admin-sidebar-collapsed #blSidebar .sidebar-header img {
 }
 body.admin-sidebar-collapsed #blSidebar .sidebar-link {
     justify-content: center;
-    padding: 0.9rem 0.5rem;
+    padding: 0.85rem 0.45rem;
     gap: 0;
 }
 body.admin-sidebar-collapsed #blSidebar .sidebar-link span,
@@ -202,6 +288,9 @@ body.admin-sidebar-collapsed #blSidebar .profile-row {
 }
 body.admin-sidebar-collapsed #blSidebar .profile-actions {
     flex-direction: column;
+}
+body.admin-sidebar-collapsed #blSidebar .sidebar-nav {
+    padding: 0.75rem 0.4rem;
 }
 
 .sidebar-toggle {
@@ -274,7 +363,7 @@ body.admin-body .form-control:focus {
     background: #fff;
     border-color: var(--primary);
     color: var(--text-main);
-    box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.2);
+    box-shadow: 0 0 0 3px rgba(255, 107, 0, 0.2);
 }
 body.admin-body .container {
     background: transparent;

@@ -421,7 +421,7 @@ require_once '../components/header.php';
                                 if($percent == 100) $bar_color = 'var(--primary)';
                                 
                                 $pic_file = $sp['profile_pic'];
-                                $pic_url = !empty($pic_file) ? BASE_URL . '/uploads/' . $pic_file : 'https://ui-avatars.com/api/?name='.urlencode($sp['name']).'&background=F97316&color=fff';
+                                $pic_url = !empty($pic_file) ? BASE_URL . '/uploads/' . $pic_file : 'https://ui-avatars.com/api/?name='.urlencode($sp['name']).'&background=FF6B00&color=fff';
                             ?>
                             <div class="student-progress-row"
                                 role="button"
