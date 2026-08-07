@@ -91,7 +91,7 @@ require_once '../components/header.php';
                                 <i class="uil uil-users-alt"></i> <?php echo $student_count; ?> Siswa Peserta
                             </span>
                             <?php if (!empty($linked_names)): ?>
-                                <span style="background:rgba(99,102,241,0.18); color:#a5b4fc; padding:0.2rem 0.6rem; border-radius:12px; font-size:0.8rem; display:inline-block;" title="Rombel terhubung">
+                                <span style="background:var(--primary-muted); color:var(--primary-hover); padding:0.2rem 0.6rem; border-radius:12px; font-size:0.8rem; display:inline-block;" title="Rombel terhubung">
                                     <i class="uil uil-building"></i> <?php echo htmlspecialchars(implode(', ', $linked_names)); ?>
                                 </span>
                             <?php else: ?>

@@ -66,7 +66,7 @@ require_once '../components/header.php';
             </div>
         <?php else: ?>
             <div class="glass-card">
-                <div style="background:rgba(79, 70, 229, 0.1); border:1px solid rgba(79, 70, 229, 0.3); padding:1.5rem; border-radius:var(--radius-sm); margin-bottom:2rem;">
+                <div style="background:var(--primary-soft); border:1px solid var(--primary-muted); padding:1.5rem; border-radius:var(--radius-sm); margin-bottom:2rem;">
                     <h4 style="color:var(--primary); margin-bottom:0.5rem;"><i class="uil uil-info-circle"></i> Petunjuk Pengerjaan</h4>
                     <ul style="color:var(--text-muted); padding-left:1.5rem; margin:0; line-height:1.6;">
                         <li>Terdapat <b><?php echo $total_q; ?> butir soal</b> bertipe Pilihan Ganda.</li>
@@ -132,7 +132,7 @@ document.addEventListener('DOMContentLoaded', () => {
             // highlight active
             if(e.target.checked) {
                 e.target.parentElement.style.borderColor = 'var(--primary)';
-                e.target.parentElement.style.background = 'rgba(79, 70, 229, 0.1)';
+                e.target.parentElement.style.background = 'rgba(249, 115, 22, 0.12)';
             }
         });
     });

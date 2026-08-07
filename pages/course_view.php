@@ -321,7 +321,7 @@ require_once '../components/header.php';
                                                         class="uil uil-pen"></i> Edit Materi</a>
                                                 <?php if ($les['content_type'] === 'quiz'): ?>
                                                     <a href="builder_quiz.php?lesson_id=<?php echo $les['id']; ?>&course_id=<?php echo $course_id; ?>"
-                                                        style="font-size:0.75rem; background:rgba(79,70,229,0.2); color:var(--primary); padding:0.1rem 0.5rem; border-radius:10px; text-decoration:none;"><i
+                                                        style="font-size:0.75rem; background:var(--primary-muted); color:var(--primary-hover); padding:0.1rem 0.5rem; border-radius:10px; text-decoration:none;"><i
                                                             class="uil uil-puzzle-piece"></i> Edit Soal</a>
                                                     <a href="teacher_quiz_results.php?lesson_id=<?php echo $les['id']; ?>&course_id=<?php echo $course_id; ?>"
                                                         style="font-size:0.75rem; background:rgba(16, 185, 129, 0.2); color:var(--secondary); padding:0.1rem 0.5rem; border-radius:10px; text-decoration:none;"><i
@@ -396,7 +396,7 @@ require_once '../components/header.php';
                         <input type="text" name="nisn" class="form-control" placeholder="Masukkan NISN"
                             required inputmode="numeric" autocomplete="off">
                         <button type="submit" class="btn btn-primary btn-sm" title="Tambahkan siswa ke course"
-                            style="background:#10b981; border:none; padding:0.5rem 0.7rem;">
+                            style="background:var(--secondary); border:none; padding:0.5rem 0.7rem;">
                             <i class="uil uil-plus"></i>
                         </button>
                     </div>
@@ -421,7 +421,7 @@ require_once '../components/header.php';
                                 if($percent == 100) $bar_color = 'var(--primary)';
                                 
                                 $pic_file = $sp['profile_pic'];
-                                $pic_url = !empty($pic_file) ? BASE_URL . '/uploads/' . $pic_file : 'https://ui-avatars.com/api/?name='.urlencode($sp['name']).'&background=312e81&color=fff';
+                                $pic_url = !empty($pic_file) ? BASE_URL . '/uploads/' . $pic_file : 'https://ui-avatars.com/api/?name='.urlencode($sp['name']).'&background=F97316&color=fff';
                             ?>
                             <div class="student-progress-row"
                                 role="button"
@@ -664,8 +664,8 @@ async function openStudentProgress(studentId) {
                     <div style="width:${pct}%; height:100%; background:${barColor}; border-radius:10px;"></div>
                 </div>
                 <div style="display:flex; gap:1rem; margin-top:0.7rem; font-size:0.78rem; color:var(--text-muted);">
-                    <span><i class="uil uil-check-circle" style="color:#10b981;"></i> Selesai</span>
-                    <span><i class="uil uil-times-circle" style="color:#ef4444;"></i> Belum</span>
+                    <span><i class="uil uil-check-circle" style="color:var(--secondary);"></i> Selesai</span>
+                    <span><i class="uil uil-times-circle" style="color:var(--danger);"></i> Belum</span>
                 </div>
             </div>
         `;
@@ -690,7 +690,7 @@ async function openStudentProgress(studentId) {
                     lessons.forEach(les => {
                         const ok = !!les.completed;
                         const icon = ok ? 'uil-check-circle' : 'uil-times-circle';
-                        const color = ok ? '#10b981' : '#ef4444';
+                        const color = ok ? '#0D9488' : '#DC2626';
                         const bg = ok ? 'rgba(16,185,129,0.08)' : 'rgba(239,68,68,0.06)';
                         const border = ok ? 'rgba(16,185,129,0.22)' : 'rgba(239,68,68,0.18)';
                         html += `

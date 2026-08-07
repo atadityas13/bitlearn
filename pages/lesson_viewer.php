@@ -185,7 +185,7 @@ require_once '../components/header.php';
                     <?php foreach ($mod['lessons'] as $les): ?>
                         <a href="?course_id=<?php echo $course_id; ?>&lesson_id=<?php echo $les['id']; ?>"
                             style="display:flex; align-items:flex-start; padding:0.8rem; border-radius:var(--radius-sm); margin-bottom:0.2rem; text-decoration:none; 
-                           <?php echo ($lesson_id_to_view == $les['id']) ? 'background:rgba(79, 70, 229, 0.2); border-left:3px solid var(--primary);' : 'color:var(--text-main);'; ?> transition:background 0.2s;">
+                           <?php echo ($lesson_id_to_view == $les['id']) ? 'background:var(--primary-soft); border-left:3px solid var(--primary);' : 'color:var(--text-main);'; ?> transition:background 0.2s;">
                             <?php if ($les['is_completed']): ?>
                                 <i class="uil uil-check-circle"
                                     style="color:var(--secondary); font-size:1.2rem; margin-right:0.5rem; margin-top:-2px;"></i>

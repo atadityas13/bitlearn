@@ -20,9 +20,9 @@ body.admin-body {
     z-index: 1030;
     display: flex;
     flex-direction: column;
-    background: var(--surface);
-    border-right: 1px solid rgba(255,255,255,0.06);
-    box-shadow: 4px 0 20px rgba(0,0,0,0.25);
+    background: #fff;
+    border-right: 1px solid var(--border);
+    box-shadow: 4px 0 24px rgba(28, 25, 23, 0.06);
     overflow: hidden;
     transition: width 0.2s ease;
 }
@@ -33,7 +33,7 @@ body.admin-body {
     justify-content: center;
     align-items: center;
     padding: 1.25rem 1rem;
-    border-bottom: 1px solid rgba(255,255,255,0.06);
+    border-bottom: 1px solid var(--border);
 }
 
 #blSidebar .sidebar-header img {
@@ -80,16 +80,16 @@ body.admin-body {
 
 #blSidebar .sidebar-link:hover,
 #blSidebar .sidebar-link.active {
-    color: #fff;
-    background: rgba(79, 70, 229, 0.15);
+    color: var(--primary-hover);
+    background: var(--primary-soft);
     border-left-color: var(--primary);
 }
 
 #blSidebar .sidebar-footer {
     flex: 0 0 auto;
     padding: 1rem;
-    border-top: 1px solid rgba(255,255,255,0.06);
-    background: rgba(0,0,0,0.12);
+    border-top: 1px solid var(--border);
+    background: var(--primary-soft);
 }
 
 #blSidebar .profile-row {
@@ -141,8 +141,8 @@ body.admin-body {
     align-items: center;
     gap: 1rem;
     padding: 0.85rem 1.5rem;
-    background: var(--surface-glass);
-    border-bottom: 1px solid rgba(255,255,255,0.05);
+    background: rgba(255, 248, 243, 0.9);
+    border-bottom: 1px solid var(--border);
     backdrop-filter: blur(10px);
 }
 
@@ -165,7 +165,7 @@ body.admin-body {
 #blMain > .footer {
     margin-top: auto;
     padding: 1.5rem;
-    border-top: 1px solid rgba(255,255,255,0.05);
+    border-top: 1px solid var(--border);
     text-align: center;
 }
 
@@ -208,7 +208,7 @@ body.admin-sidebar-collapsed #blSidebar .profile-actions {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    background: var(--surface);
+    background: #fff;
     color: var(--text-main);
     border: 1px solid var(--border);
     width: 42px;
@@ -216,6 +216,11 @@ body.admin-sidebar-collapsed #blSidebar .profile-actions {
     border-radius: var(--radius-sm);
     font-size: 1.35rem;
     cursor: pointer;
+}
+.sidebar-toggle:hover {
+    background: var(--primary-soft);
+    border-color: #FDBA74;
+    color: var(--primary-hover);
 }
 /* Keep BitLearn button look when Bootstrap is loaded */
 body.admin-body .btn {
@@ -233,6 +238,7 @@ body.admin-body .btn-primary {
     background: var(--primary);
     border-color: var(--primary);
     color: #fff;
+    box-shadow: var(--shadow-primary);
 }
 body.admin-body .btn-primary:hover {
     background: var(--primary-hover);
@@ -240,30 +246,35 @@ body.admin-body .btn-primary:hover {
     color: #fff;
 }
 body.admin-body .btn-secondary {
-    background: transparent;
+    background: #fff;
     border: 1px solid var(--border);
     color: var(--text-main);
 }
 body.admin-body .btn-secondary:hover {
-    background: var(--border);
-    color: #fff;
+    background: var(--primary-soft);
+    border-color: #FDBA74;
+    color: var(--primary-hover);
 }
 body.admin-body .btn-danger {
+    background: rgba(220, 38, 38, 0.08);
+    border-color: rgba(220, 38, 38, 0.25);
+    color: var(--danger);
+}
+body.admin-body .btn-danger:hover {
     background: var(--danger);
-    border-color: var(--danger);
     color: #fff;
 }
 body.admin-body .form-control {
-    background: rgba(15, 23, 42, 0.6);
+    background: #fff;
     border: 1px solid var(--border);
     color: var(--text-main);
     border-radius: var(--radius-sm);
 }
 body.admin-body .form-control:focus {
-    background: rgba(15, 23, 42, 0.8);
+    background: #fff;
     border-color: var(--primary);
     color: var(--text-main);
-    box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.2);
+    box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.2);
 }
 body.admin-body .container {
     background: transparent;

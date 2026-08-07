@@ -37,7 +37,7 @@ $hide_nav = (isset($hide_navbar) && $hide_navbar);
         title: 'Berhasil!',
         html: '<p style="margin:0;line-height:1.55;font-size:1rem;"><?php echo htmlspecialchars($swal_success, ENT_QUOTES, 'UTF-8'); ?></p>',
         confirmButtonText: 'Mengerti',
-        confirmButtonColor: '#10b981',
+        confirmButtonColor: '#0D9488',
         background: 'var(--surface)',
         color: 'var(--text-main)',
         width: 420,
@@ -58,7 +58,7 @@ $hide_nav = (isset($hide_navbar) && $hide_navbar);
         title: 'Gagal!',
         html: '<p style="margin:0;line-height:1.55;font-size:1rem;"><?php echo htmlspecialchars($swal_error, ENT_QUOTES, 'UTF-8'); ?></p>',
         confirmButtonText: 'Tutup',
-        confirmButtonColor: '#ef4444',
+        confirmButtonColor: '#DC2626',
         background: 'var(--surface)',
         color: 'var(--text-main)',
         width: 420,
@@ -110,7 +110,7 @@ document.querySelectorAll('form[data-confirm-unenroll]').forEach(form => {
                     Keluarkan <b style="color:var(--text-main);">${studentName}</b> dari course ini?
                 </p>
                 <label style="display:flex; align-items:flex-start; gap:0.65rem; text-align:left; background:rgba(239,68,68,0.08); border:1px solid rgba(239,68,68,0.25); border-radius:10px; padding:0.85rem 1rem; cursor:pointer;">
-                    <input type="checkbox" id="swalPreventRejoin" style="margin-top:0.2rem; width:1rem; height:1rem; accent-color:#ef4444;">
+                    <input type="checkbox" id="swalPreventRejoin" style="margin-top:0.2rem; width:1rem; height:1rem; accent-color:#DC2626;">
                     <span style="font-size:0.9rem; line-height:1.4; color:var(--text-main);">
                         Cegah siswa masuk course ini kembali
                         <small style="display:block; margin-top:0.25rem; color:var(--text-muted); font-weight:400;">
@@ -122,8 +122,8 @@ document.querySelectorAll('form[data-confirm-unenroll]').forEach(form => {
             icon: 'warning',
             showCancelButton: true,
             focusConfirm: false,
-            confirmButtonColor: '#ef4444',
-            cancelButtonColor: '#64748b',
+            confirmButtonColor: '#DC2626',
+            cancelButtonColor: '#A8A29E',
             confirmButtonText: 'Ya, Keluarkan',
             cancelButtonText: 'Batal',
             background: 'var(--surface)',
