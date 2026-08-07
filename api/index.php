@@ -702,11 +702,39 @@ if ($route === '/profile' && ($method === 'PUT' || $method === 'POST')) {
         $fields[] = "password = '" . $conn->real_escape_string($hashed) . "'";
     }
 
-    if (isset($_FILES['profile_pic']) && $_FILES['profile_pic']['error'] === UPLOAD_ERR_OK) {
-        $allowed = ['jpg', 'jpeg', 'png'];
-        $ext = strtolower(pathinfo($_FILES['profile_pic']['name'], PATHINFO_EXTENSION));
+    if (isset($_FILES['profile_pic'])) {
+        $uploadErr = (int) ($_FILES['profile_pic']['error'] ?? UPLOAD_ERR_NO_FILE);
+        if ($uploadErr !== UPLOAD_ERR_OK) {
+            $uploadMsg = [
+                UPLOAD_ERR_INI_SIZE => 'Ukuran foto melebihi batas server.',
+                UPLOAD_ERR_FORM_SIZE => 'Ukuran foto terlalu besar.',
+                UPLOAD_ERR_PARTIAL => 'Unggahan foto terputus. Coba lagi.',
+                UPLOAD_ERR_NO_FILE => 'Tidak ada file foto yang dikirim.',
+                UPLOAD_ERR_NO_TMP_DIR => 'Folder sementara server tidak tersedia.',
+                UPLOAD_ERR_CANT_WRITE => 'Gagal menulis file foto di server.',
+                UPLOAD_ERR_EXTENSION => 'Unggahan foto diblokir ekstensi PHP.',
+            ];
+            ApiResponse::error($uploadMsg[$uploadErr] ?? 'Gagal mengunggah foto profil.', 422);
+        }
+
+        $allowed = ['jpg', 'jpeg', 'png', 'webp'];
+        $ext = strtolower(pathinfo((string) $_FILES['profile_pic']['name'], PATHINFO_EXTENSION));
+        if ($ext === '' || !in_array($ext, $allowed, true)) {
+            $mime = strtolower((string) ($_FILES['profile_pic']['type'] ?? ''));
+            $mimeMap = [
+                'image/jpeg' => 'jpg',
+                'image/jpg' => 'jpg',
+                'image/pjpeg' => 'jpg',
+                'image/png' => 'png',
+                'image/webp' => 'webp',
+            ];
+            $ext = $mimeMap[$mime] ?? '';
+        }
         if (!in_array($ext, $allowed, true)) {
             ApiResponse::error('Format foto harus JPG atau PNG.', 422);
+        }
+        if ($ext === 'jpeg') {
+            $ext = 'jpg';
         }
         if ($_FILES['profile_pic']['size'] > 2000000) {
             ApiResponse::error('Ukuran foto maksimal 2MB.', 422);
@@ -730,7 +758,7 @@ if ($route === '/profile' && ($method === 'PUT' || $method === 'POST')) {
     }
 
     if (empty($fields)) {
-        ApiResponse::error('Tidak ada perubahan yang dikirim.', 422);
+        ApiResponse::error('Tidak ada perubahan yang dikirim. Pastikan foto JPG/PNG terpilih.', 422);
     }
 
     $sql = 'UPDATE users SET ' . implode(', ', $fields) . " WHERE id = $userId";
