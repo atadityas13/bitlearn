@@ -12,6 +12,11 @@ $return_q = isset($_POST['return_q']) ? trim((string)$_POST['return_q']) : '';
 if (strlen($return_q) > 100) {
     $return_q = substr($return_q, 0, 100);
 }
+$allowed_limits = [10, 25, 50, 100];
+$return_page = isset($_POST['return_page']) ? max(1, (int)$_POST['return_page']) : 1;
+$return_per_page = isset($_POST['return_per_page']) && in_array((int)$_POST['return_per_page'], $allowed_limits, true)
+    ? (int)$_POST['return_per_page']
+    : 10;
 
 $params = [];
 if ($return_status !== 'all') {
@@ -25,6 +30,12 @@ if ($return_class_id > 0) {
 }
 if ($return_q !== '') {
     $params['q'] = $return_q;
+}
+if ($return_per_page !== 10) {
+    $params['per_page'] = $return_per_page;
+}
+if ($return_page > 1) {
+    $params['page'] = $return_page;
 }
 $redirect = '../pages/teacher_grading.php' . ($params ? ('?' . http_build_query($params)) : '');
 

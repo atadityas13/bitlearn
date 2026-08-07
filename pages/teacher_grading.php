@@ -16,6 +16,10 @@ if (strlen($search_q) > 100) {
     $search_q = substr($search_q, 0, 100);
 }
 
+$allowed_limits = [10, 25, 50, 100];
+$limit = isset($_GET['per_page']) && in_array((int)$_GET['per_page'], $allowed_limits, true) ? (int)$_GET['per_page'] : 10;
+$page = isset($_GET['page']) && is_numeric($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
+
 // Daftar course milik guru
 $courses = [];
 $cq = $conn->query("SELECT id, title FROM courses WHERE teacher_id = $teacher_id ORDER BY title ASC");
@@ -80,6 +84,8 @@ function grading_qs(array $overrides = []): string
         'course_id' => array_key_exists('course_id', $overrides) ? (int)$overrides['course_id'] : (isset($_GET['course_id']) ? (int)$_GET['course_id'] : 0),
         'class_id' => array_key_exists('class_id', $overrides) ? (int)$overrides['class_id'] : (isset($_GET['class_id']) ? (int)$_GET['class_id'] : 0),
         'q' => array_key_exists('q', $overrides) ? trim((string)$overrides['q']) : (isset($_GET['q']) ? trim((string)$_GET['q']) : ''),
+        'per_page' => array_key_exists('per_page', $overrides) ? (int)$overrides['per_page'] : (isset($_GET['per_page']) ? (int)$_GET['per_page'] : 10),
+        'page' => array_key_exists('page', $overrides) ? (int)$overrides['page'] : (isset($_GET['page']) ? (int)$_GET['page'] : 1),
     ];
     if (!in_array($params['status'], ['all', 'ungraded', 'graded'], true)) {
         $params['status'] = 'all';
@@ -95,6 +101,12 @@ function grading_qs(array $overrides = []): string
     }
     if ($params['q'] === '') {
         unset($params['q']);
+    }
+    if ((int)$params['per_page'] === 10) {
+        unset($params['per_page']);
+    }
+    if ((int)$params['page'] <= 1) {
+        unset($params['page']);
     }
     return $params ? ('?' . http_build_query($params)) : '';
 }
@@ -134,6 +146,20 @@ $count_all = (int)$conn->query("SELECT COUNT(s.id) AS n $count_base")->fetch_ass
 $count_ungraded = (int)$conn->query("SELECT COUNT(s.id) AS n $count_base AND s.grade IS NULL")->fetch_assoc()['n'];
 $count_graded = (int)$conn->query("SELECT COUNT(s.id) AS n $count_base AND s.grade IS NOT NULL")->fetch_assoc()['n'];
 
+if ($status === 'ungraded') {
+    $total_rows = $count_ungraded;
+} elseif ($status === 'graded') {
+    $total_rows = $count_graded;
+} else {
+    $total_rows = $count_all;
+}
+
+$total_pages = max(1, (int)ceil($total_rows / $limit));
+if ($page > $total_pages) {
+    $page = $total_pages;
+}
+$offset = ($page - 1) * $limit;
+
 $query = "SELECT s.id as sub_id, s.file_path, s.grade, s.created_at as submitted_at, s.feedback,
                  u.name as st_name, a.title as assign_title, c.title as course_title
           FROM submissions s
@@ -143,7 +169,8 @@ $query = "SELECT s.id as sub_id, s.file_path, s.grade, s.created_at as submitted
           $join_class
           $filter_sql
           $status_sql
-          ORDER BY s.created_at DESC";
+          ORDER BY s.created_at DESC
+          LIMIT $limit OFFSET $offset";
 $subs = $conn->query($query);
 
 $has_extra_filter = ($course_id > 0 || $class_id > 0 || $search_q !== '');
@@ -163,6 +190,7 @@ require_once '../components/header.php';
     <div class="glass-card grading-toolbar">
         <form method="GET" action="teacher_grading.php" class="grading-filter-form" id="gradingFilterForm">
             <input type="hidden" name="status" value="<?php echo htmlspecialchars($status); ?>">
+            <input type="hidden" name="page" value="1">
             <div class="grading-select-grid">
                 <div class="form-group" style="margin:0;">
                     <label class="form-label" for="filterCourse"><i class="uil uil-books"></i> Course</label>
@@ -196,26 +224,42 @@ require_once '../components/header.php';
                         <button type="submit" class="btn btn-primary btn-sm" title="Cari"><i class="uil uil-search"></i></button>
                     </div>
                 </div>
+                <div class="form-group" style="margin:0;">
+                    <label class="form-label" for="filterPerPage"><i class="uil uil-list-ul"></i> Baris / halaman</label>
+                    <select id="filterPerPage" name="per_page" class="form-control">
+                        <?php foreach ($allowed_limits as $opt): ?>
+                            <option value="<?php echo $opt; ?>" <?php echo $limit === $opt ? 'selected' : ''; ?>><?php echo $opt; ?> baris</option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
                 <div class="grading-filter-actions">
                     <?php if ($has_extra_filter): ?>
-                        <a href="teacher_grading.php<?php echo grading_qs(['course_id' => 0, 'class_id' => 0, 'q' => '', 'status' => $status]); ?>" class="btn btn-secondary btn-sm">
+                        <a href="teacher_grading.php<?php echo grading_qs(['course_id' => 0, 'class_id' => 0, 'q' => '', 'status' => $status, 'page' => 1, 'per_page' => $limit]); ?>" class="btn btn-secondary btn-sm">
                             <i class="uil uil-times"></i> Reset filter
                         </a>
                     <?php endif; ?>
                 </div>
             </div>
+            <div class="grading-toolbar-meta">
+                Menampilkan <strong><?php echo $total_rows > 0 ? ($offset + 1) : 0; ?>–<?php echo min($offset + $limit, $total_rows); ?></strong>
+                dari <strong><?php echo $total_rows; ?></strong> submisi
+                <?php if ($search_q !== ''): ?>
+                    untuk pencarian “<?php echo htmlspecialchars($search_q); ?>”
+                <?php endif; ?>
+            </div>
         </form>
 
         <div class="grading-filter-label" style="margin-top:1rem;"><i class="uil uil-filter"></i> Filter status</div>
         <div class="grading-filter-chips">
-            <a href="teacher_grading.php<?php echo grading_qs(['status' => 'all', 'course_id' => $course_id, 'class_id' => $class_id, 'q' => $search_q]); ?>" class="filter-chip <?php echo $status === 'all' ? 'is-active' : ''; ?>">Semua <span class="chip-count"><?php echo $count_all; ?></span></a>
-            <a href="teacher_grading.php<?php echo grading_qs(['status' => 'ungraded', 'course_id' => $course_id, 'class_id' => $class_id, 'q' => $search_q]); ?>" class="filter-chip <?php echo $status === 'ungraded' ? 'is-active' : ''; ?>">Belum dinilai <span class="chip-count"><?php echo $count_ungraded; ?></span></a>
-            <a href="teacher_grading.php<?php echo grading_qs(['status' => 'graded', 'course_id' => $course_id, 'class_id' => $class_id, 'q' => $search_q]); ?>" class="filter-chip <?php echo $status === 'graded' ? 'is-active' : ''; ?>">Sudah dinilai <span class="chip-count"><?php echo $count_graded; ?></span></a>
+            <a href="teacher_grading.php<?php echo grading_qs(['status' => 'all', 'course_id' => $course_id, 'class_id' => $class_id, 'q' => $search_q, 'page' => 1, 'per_page' => $limit]); ?>" class="filter-chip <?php echo $status === 'all' ? 'is-active' : ''; ?>">Semua <span class="chip-count"><?php echo $count_all; ?></span></a>
+            <a href="teacher_grading.php<?php echo grading_qs(['status' => 'ungraded', 'course_id' => $course_id, 'class_id' => $class_id, 'q' => $search_q, 'page' => 1, 'per_page' => $limit]); ?>" class="filter-chip <?php echo $status === 'ungraded' ? 'is-active' : ''; ?>">Belum dinilai <span class="chip-count"><?php echo $count_ungraded; ?></span></a>
+            <a href="teacher_grading.php<?php echo grading_qs(['status' => 'graded', 'course_id' => $course_id, 'class_id' => $class_id, 'q' => $search_q, 'page' => 1, 'per_page' => $limit]); ?>" class="filter-chip <?php echo $status === 'graded' ? 'is-active' : ''; ?>">Sudah dinilai <span class="chip-count"><?php echo $count_graded; ?></span></a>
         </div>
     </div>
 
     <?php if($subs && $subs->num_rows > 0): ?>
-        <div class="table-responsive glass-card" style="padding:1rem;">
+        <div class="glass-card" style="padding:1rem;">
+        <div class="table-responsive">
             <table class="table" style="min-width:820px; margin-top:0;">
                 <thead>
                     <tr>
@@ -290,6 +334,48 @@ require_once '../components/header.php';
                 </tbody>
             </table>
         </div>
+
+            <div class="pagination-bar">
+                <div class="pagination-info">
+                    Halaman <strong><?php echo $page; ?></strong> dari <strong><?php echo $total_pages; ?></strong>
+                </div>
+                <?php if ($total_pages > 1): ?>
+                    <nav class="pagination-nav" aria-label="Navigasi halaman">
+                        <?php
+                        $window = 2;
+                        $start = max(1, $page - $window);
+                        $end = min($total_pages, $page + $window);
+                        ?>
+                        <a class="page-btn <?php echo $page <= 1 ? 'is-disabled' : ''; ?>"
+                           href="<?php echo $page <= 1 ? '#' : htmlspecialchars(grading_qs(['page' => $page - 1, 'per_page' => $limit, 'status' => $status, 'course_id' => $course_id, 'class_id' => $class_id, 'q' => $search_q])); ?>"
+                           <?php echo $page <= 1 ? 'aria-disabled="true" tabindex="-1"' : ''; ?>>
+                            <i class="uil uil-angle-left"></i>
+                        </a>
+
+                        <?php if ($start > 1): ?>
+                            <a class="page-btn" href="<?php echo htmlspecialchars(grading_qs(['page' => 1, 'per_page' => $limit, 'status' => $status, 'course_id' => $course_id, 'class_id' => $class_id, 'q' => $search_q])); ?>">1</a>
+                            <?php if ($start > 2): ?><span class="page-ellipsis">…</span><?php endif; ?>
+                        <?php endif; ?>
+
+                        <?php for ($i = $start; $i <= $end; $i++): ?>
+                            <a class="page-btn <?php echo $i === $page ? 'is-active' : ''; ?>"
+                               href="<?php echo htmlspecialchars(grading_qs(['page' => $i, 'per_page' => $limit, 'status' => $status, 'course_id' => $course_id, 'class_id' => $class_id, 'q' => $search_q])); ?>"><?php echo $i; ?></a>
+                        <?php endfor; ?>
+
+                        <?php if ($end < $total_pages): ?>
+                            <?php if ($end < $total_pages - 1): ?><span class="page-ellipsis">…</span><?php endif; ?>
+                            <a class="page-btn" href="<?php echo htmlspecialchars(grading_qs(['page' => $total_pages, 'per_page' => $limit, 'status' => $status, 'course_id' => $course_id, 'class_id' => $class_id, 'q' => $search_q])); ?>"><?php echo $total_pages; ?></a>
+                        <?php endif; ?>
+
+                        <a class="page-btn <?php echo $page >= $total_pages ? 'is-disabled' : ''; ?>"
+                           href="<?php echo $page >= $total_pages ? '#' : htmlspecialchars(grading_qs(['page' => $page + 1, 'per_page' => $limit, 'status' => $status, 'course_id' => $course_id, 'class_id' => $class_id, 'q' => $search_q])); ?>"
+                           <?php echo $page >= $total_pages ? 'aria-disabled="true" tabindex="-1"' : ''; ?>>
+                            <i class="uil uil-angle-right"></i>
+                        </a>
+                    </nav>
+                <?php endif; ?>
+            </div>
+        </div>
     <?php else: ?>
         <div class="glass-card" style="text-align:center; padding:4rem;">
             <i class="uil uil-inbox" style="font-size:4rem; color:var(--text-muted);"></i>
@@ -323,6 +409,8 @@ require_once '../components/header.php';
             <input type="hidden" name="return_course_id" value="<?php echo (int)$course_id; ?>">
             <input type="hidden" name="return_class_id" value="<?php echo (int)$class_id; ?>">
             <input type="hidden" name="return_q" value="<?php echo htmlspecialchars($search_q); ?>">
+            <input type="hidden" name="return_page" value="<?php echo (int)$page; ?>">
+            <input type="hidden" name="return_per_page" value="<?php echo (int)$limit; ?>">
 
             <div class="modal-note" id="gradeMetaBox">
                 <div><strong id="gradeStudentName">-</strong></div>
@@ -351,7 +439,7 @@ require_once '../components/header.php';
 }
 .grading-select-grid {
     display: grid;
-    grid-template-columns: 1fr 1fr 1.2fr auto;
+    grid-template-columns: 1fr 1fr 1.1fr minmax(120px, 0.7fr) auto;
     gap: 0.85rem 1rem;
     align-items: end;
 }
@@ -361,6 +449,11 @@ require_once '../components/header.php';
     align-items: center;
 }
 .grading-search-row .form-control { flex: 1; min-width: 0; }
+.grading-toolbar-meta {
+    margin-top: 0.85rem;
+    font-size: 0.88rem;
+    color: var(--text-muted);
+}
 .grading-filter-actions {
     display: flex;
     gap: 0.5rem;
@@ -416,8 +509,70 @@ require_once '../components/header.php';
     font-weight: 700;
     font-size: 0.8rem;
 }
+.pagination-bar {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.75rem;
+    margin-top: 1.25rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--border);
+    max-width: 100%;
+    overflow: hidden;
+}
+.pagination-info {
+    color: var(--text-muted);
+    font-size: 0.88rem;
+}
+.pagination-nav {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.35rem;
+    max-width: 100%;
+}
+.page-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 2.15rem;
+    height: 2.15rem;
+    padding: 0 0.55rem;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: #fff;
+    color: var(--text-main);
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 0.88rem;
+}
+.page-btn:hover { background: var(--primary-soft); border-color: #FDBA74; color: var(--primary-hover); }
+.page-btn.is-active {
+    background: var(--primary);
+    border-color: var(--primary);
+    color: #fff;
+}
+.page-btn.is-disabled {
+    opacity: 0.4;
+    pointer-events: none;
+}
+.page-ellipsis {
+    color: var(--text-muted);
+    padding: 0 0.2rem;
+    font-weight: 700;
+}
+@media (max-width: 992px) {
+    .grading-select-grid { grid-template-columns: 1fr 1fr; }
+}
 @media (max-width: 768px) {
     .grading-select-grid { grid-template-columns: 1fr; }
+    .pagination-bar {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    .pagination-nav { justify-content: center; }
 }
 </style>
 
@@ -426,6 +581,7 @@ require_once '../components/header.php';
     var form = document.getElementById('gradingFilterForm');
     var course = document.getElementById('filterCourse');
     var kelas = document.getElementById('filterClass');
+    var perPage = document.getElementById('filterPerPage');
     if (!form) return;
 
     if (course) {
@@ -437,6 +593,11 @@ require_once '../components/header.php';
     }
     if (kelas) {
         kelas.addEventListener('change', function () {
+            form.submit();
+        });
+    }
+    if (perPage) {
+        perPage.addEventListener('change', function () {
             form.submit();
         });
     }
