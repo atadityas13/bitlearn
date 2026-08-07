@@ -27,6 +27,7 @@ require_once '../components/header.php';
     <div class="glass-card">
         <h3 style="margin-bottom:1.5rem;"><i class="uil uil-list-ul"></i> Daftar Rombel Aktif</h3>
         <?php
+        $edit_class_modals = '';
         $classes->data_seek(0);
         if($classes->num_rows > 0):
             while($cl = $classes->fetch_assoc()):
@@ -51,12 +52,14 @@ require_once '../components/header.php';
                     </form>
                 </div>
             </div>
-
+        <?php
+                ob_start();
+        ?>
             <div id="modalEditClass<?php echo $c_id; ?>" class="modal-overlay">
                 <div class="modal-box modal-box--sm">
                     <div class="modal-header">
                         <h3><i class="uil uil-pen"></i> Edit Nama Rombel</h3>
-                        <button type="button" onclick="document.getElementById('modalEditClass<?php echo $c_id; ?>').classList.remove('active')" class="btn-close"><i class="uil uil-times"></i></button>
+                        <button type="button" onclick="document.getElementById('modalEditClass<?php echo $c_id; ?>').classList.remove('active')" class="btn-close" aria-label="Tutup"><i class="uil uil-times"></i></button>
                     </div>
                     <form action="../actions/edit_class.php" method="POST">
                         <input type="hidden" name="class_id" value="<?php echo $c_id; ?>">
@@ -69,6 +72,7 @@ require_once '../components/header.php';
                 </div>
             </div>
         <?php
+                $edit_class_modals .= ob_get_clean();
             endwhile;
         else:
         ?>
@@ -80,11 +84,13 @@ require_once '../components/header.php';
     </div>
 </div>
 
+<?php echo $edit_class_modals ?? ''; ?>
+
 <div id="modalAddClass" class="modal-overlay">
     <div class="modal-box modal-box--sm">
         <div class="modal-header">
             <h3><i class="uil uil-plus-circle"></i> Buat Rombel Baru</h3>
-            <button type="button" onclick="document.getElementById('modalAddClass').classList.remove('active')" class="btn-close"><i class="uil uil-times"></i></button>
+            <button type="button" onclick="document.getElementById('modalAddClass').classList.remove('active')" class="btn-close" aria-label="Tutup"><i class="uil uil-times"></i></button>
         </div>
         <form action="../actions/add_class.php" method="POST">
             <div class="form-group">
