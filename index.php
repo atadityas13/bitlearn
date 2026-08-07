@@ -64,8 +64,12 @@ require_once 'components/header.php';
                 <div style="position:relative;">
                     <i class="uil uil-lock"
                         style="position:absolute; left:1rem; top:50%; transform:translateY(-50%); color:var(--text-muted); font-size:1.2rem;"></i>
-                    <input type="password" id="password" name="password" class="form-control" style="padding-left:3rem;"
+                    <input type="password" id="password" name="password" class="form-control" style="padding-left:3rem; padding-right:3rem;"
                         placeholder="••••••••" required>
+                    <button type="button" id="togglePassword" aria-label="Tampilkan kata sandi"
+                        style="position:absolute; right:0.75rem; top:50%; transform:translateY(-50%); background:none; border:none; cursor:pointer; color:var(--text-muted); padding:0.25rem; display:flex; align-items:center;">
+                        <i class="uil uil-eye" id="togglePasswordIcon" style="font-size:1.25rem;"></i>
+                    </button>
                 </div>
             </div>
 
@@ -74,6 +78,21 @@ require_once 'components/header.php';
             </button>
         </form>
     </div>
+
+    <script>
+    (function () {
+        var btn = document.getElementById('togglePassword');
+        var input = document.getElementById('password');
+        var icon = document.getElementById('togglePasswordIcon');
+        if (!btn || !input || !icon) return;
+        btn.addEventListener('click', function () {
+            var show = input.type === 'password';
+            input.type = show ? 'text' : 'password';
+            icon.className = show ? 'uil uil-eye-slash' : 'uil uil-eye';
+            btn.setAttribute('aria-label', show ? 'Sembunyikan kata sandi' : 'Tampilkan kata sandi');
+        });
+    })();
+    </script>
     
     <div style="margin-top: 3rem; text-align:center; color:var(--text-muted); font-size:0.85rem;">
         <p style="margin-bottom:0.3rem;"><span style="color:var(--text-main); font-weight:500;">BitLearn E-Learning</span> &copy; 2026 MTsN 11 Majalengka</p>
