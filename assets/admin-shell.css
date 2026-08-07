@@ -1,0 +1,316 @@
+/* BitLearn admin shell — Bootstrap-style fixed sidebar (bulletproof) */
+:root {
+    --bl-sidebar-w: 260px;
+    --bl-sidebar-collapsed: 78px;
+}
+
+body.admin-body {
+    display: block;
+    overflow-x: hidden;
+    min-height: 100vh;
+}
+
+/* Fixed sidebar — never overlays content because main has matching margin */
+#blSidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: var(--bl-sidebar-w);
+    z-index: 1030;
+    display: flex;
+    flex-direction: column;
+    background: var(--surface);
+    border-right: 1px solid rgba(255,255,255,0.06);
+    box-shadow: 4px 0 20px rgba(0,0,0,0.25);
+    overflow: hidden;
+    transition: width 0.2s ease;
+}
+
+#blSidebar .sidebar-header {
+    flex: 0 0 auto;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 1.25rem 1rem;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+
+#blSidebar .sidebar-header img {
+    width: 150px;
+    max-width: 100%;
+    height: auto;
+    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
+}
+
+#blSidebar .sidebar-nav {
+    flex: 1 1 auto;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 1rem 0;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(148,163,184,0.35) transparent;
+}
+
+#blSidebar .sidebar-nav::-webkit-scrollbar { width: 6px; }
+#blSidebar .sidebar-nav::-webkit-scrollbar-thumb {
+    background: rgba(148,163,184,0.35);
+    border-radius: 8px;
+}
+
+#blSidebar .sidebar-link {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+    padding: 0.85rem 1.35rem;
+    color: var(--text-muted);
+    text-decoration: none;
+    font-weight: 500;
+    border-left: 3px solid transparent;
+    white-space: nowrap;
+    transition: background 0.15s, color 0.15s;
+}
+
+#blSidebar .sidebar-link i {
+    font-size: 1.2rem;
+    flex: 0 0 auto;
+    width: 1.25rem;
+    text-align: center;
+}
+
+#blSidebar .sidebar-link:hover,
+#blSidebar .sidebar-link.active {
+    color: #fff;
+    background: rgba(79, 70, 229, 0.15);
+    border-left-color: var(--primary);
+}
+
+#blSidebar .sidebar-footer {
+    flex: 0 0 auto;
+    padding: 1rem;
+    border-top: 1px solid rgba(255,255,255,0.06);
+    background: rgba(0,0,0,0.12);
+}
+
+#blSidebar .profile-row {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 0.75rem;
+}
+
+#blSidebar .profile-actions {
+    display: flex;
+    gap: 0.5rem;
+    align-items: stretch;
+}
+
+#blSidebar .profile-actions .btn-profile { flex: 1; }
+#blSidebar .profile-actions .btn-logout {
+    flex: 0 0 2.5rem;
+    padding-left: 0;
+    padding-right: 0;
+}
+#blSidebar .profile-actions .btn {
+    min-height: 2.35rem;
+    padding: 0.4rem 0.65rem;
+    font-size: 0.85rem;
+}
+
+/* Main column — always offset by sidebar width */
+#blMain {
+    margin-left: var(--bl-sidebar-w) !important;
+    min-height: 100vh;
+    min-width: 0;
+    width: calc(100% - var(--bl-sidebar-w)) !important;
+    max-width: calc(100% - var(--bl-sidebar-w));
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    z-index: 1;
+    transition: margin-left 0.2s ease, width 0.2s ease;
+}
+
+#blMain .top-nav {
+    position: sticky;
+    top: 0;
+    z-index: 1020;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.85rem 1.5rem;
+    background: var(--surface-glass);
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+    backdrop-filter: blur(10px);
+}
+
+#blMain .top-nav-left {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+#blMain > .container.main-content,
+#blMain > .main-content {
+    flex: 1;
+    width: 100%;
+    max-width: 1400px;
+    margin-left: auto;
+    margin-right: auto;
+    padding: 1.5rem 1.5rem 2rem;
+}
+
+#blMain > .footer {
+    margin-top: auto;
+    padding: 1.5rem;
+    border-top: 1px solid rgba(255,255,255,0.05);
+    text-align: center;
+}
+
+/* Collapsed (icon-only) sidebar */
+body.admin-sidebar-collapsed #blSidebar {
+    width: var(--bl-sidebar-collapsed);
+}
+body.admin-sidebar-collapsed #blMain {
+    margin-left: var(--bl-sidebar-collapsed) !important;
+    width: calc(100% - var(--bl-sidebar-collapsed)) !important;
+    max-width: calc(100% - var(--bl-sidebar-collapsed));
+}
+body.admin-sidebar-collapsed #blSidebar .sidebar-header {
+    padding: 1rem 0.5rem;
+}
+body.admin-sidebar-collapsed #blSidebar .sidebar-header img {
+    width: 42px;
+}
+body.admin-sidebar-collapsed #blSidebar .sidebar-link {
+    justify-content: center;
+    padding: 0.9rem 0.5rem;
+    gap: 0;
+}
+body.admin-sidebar-collapsed #blSidebar .sidebar-link span,
+body.admin-sidebar-collapsed #blSidebar .user-meta,
+body.admin-sidebar-collapsed #blSidebar .btn-label {
+    display: none;
+}
+body.admin-sidebar-collapsed #blSidebar .sidebar-footer {
+    padding: 0.75rem 0.5rem;
+}
+body.admin-sidebar-collapsed #blSidebar .profile-row {
+    justify-content: center;
+}
+body.admin-sidebar-collapsed #blSidebar .profile-actions {
+    flex-direction: column;
+}
+
+.sidebar-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--surface);
+    color: var(--text-main);
+    border: 1px solid var(--border);
+    width: 42px;
+    height: 42px;
+    border-radius: var(--radius-sm);
+    font-size: 1.35rem;
+    cursor: pointer;
+}
+/* Keep BitLearn button look when Bootstrap is loaded */
+body.admin-body .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    border-radius: var(--radius-sm);
+    font-weight: 600;
+    font-family: var(--font-main);
+    text-decoration: none;
+    line-height: 1.2;
+}
+body.admin-body .btn-primary {
+    background: var(--primary);
+    border-color: var(--primary);
+    color: #fff;
+}
+body.admin-body .btn-primary:hover {
+    background: var(--primary-hover);
+    border-color: var(--primary-hover);
+    color: #fff;
+}
+body.admin-body .btn-secondary {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text-main);
+}
+body.admin-body .btn-secondary:hover {
+    background: var(--border);
+    color: #fff;
+}
+body.admin-body .btn-danger {
+    background: var(--danger);
+    border-color: var(--danger);
+    color: #fff;
+}
+body.admin-body .form-control {
+    background: rgba(15, 23, 42, 0.6);
+    border: 1px solid var(--border);
+    color: var(--text-main);
+    border-radius: var(--radius-sm);
+}
+body.admin-body .form-control:focus {
+    background: rgba(15, 23, 42, 0.8);
+    border-color: var(--primary);
+    color: var(--text-main);
+    box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.2);
+}
+body.admin-body .container {
+    background: transparent;
+}
+
+/* Offcanvas only on small phones */
+@media (max-width: 767.98px) {
+    #blSidebar {
+        width: min(86vw, 280px);
+        transform: translateX(-105%);
+        transition: transform 0.2s ease, width 0.2s ease;
+    }
+    body.admin-sidebar-open #blSidebar {
+        transform: translateX(0);
+        width: min(86vw, 280px);
+    }
+    body.admin-sidebar-collapsed #blSidebar {
+        width: min(86vw, 280px);
+    }
+    #blMain,
+    body.admin-sidebar-collapsed #blMain {
+        margin-left: 0 !important;
+        width: 100% !important;
+        max-width: 100%;
+    }
+    .admin-sidebar-backdrop {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(0,0,0,0.55);
+        z-index: 1025;
+    }
+    body.admin-sidebar-open .admin-sidebar-backdrop {
+        display: block;
+    }
+    body.admin-sidebar-collapsed #blSidebar .sidebar-link span,
+    body.admin-sidebar-collapsed #blSidebar .user-meta,
+    body.admin-sidebar-collapsed #blSidebar .btn-label {
+        display: inline;
+    }
+    body.admin-sidebar-collapsed #blSidebar .sidebar-link {
+        justify-content: flex-start;
+        padding: 0.85rem 1.35rem;
+        gap: 0.85rem;
+    }
+    body.admin-sidebar-collapsed #blSidebar .profile-actions {
+        flex-direction: row;
+    }
+    #blMain .top-nav-user { display: inline-flex !important; gap: 0.5rem; }
+}

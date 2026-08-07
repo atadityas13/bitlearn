@@ -6,17 +6,16 @@ $is_teacher = (isset($_SESSION['user_role']) && $_SESSION['user_role'] === 'teac
 $hide_nav = (isset($hide_navbar) && $hide_navbar);
 ?>
 <?php if (!$hide_nav && $is_teacher): ?>
-    <footer class="footer"
-        style="margin-top:auto; padding-top:2rem; padding-bottom:2rem; border-top:1px solid rgba(255,255,255,0.05); text-align:center;">
+    <footer class="footer">
         <div style="font-size:0.85rem; line-height:1.6; color:var(--text-muted);">
             <p style="margin-bottom:0.4rem; font-weight:500;"><span style="color:var(--text-main);">BitLearn
                     E-Learning</span> &copy; 2026 <b style="color:var(--text-main);">MTsN 11 Majalengka</b></p>
             <p>Dikembangkan secara khusus oleh <b style="color:var(--primary);">Dede Sudirman, S.Pd.</b> (Guru
-                Informatika)<br>
+                Informatika)</p>
         </div>
     </footer>
-    </main> <!-- end .app-main -->
-    </div> <!-- end .app-wrapper -->
+    </div> <!-- end #blMain -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <?php else: ?>
     <?php if (!$hide_nav): ?>
         <footer class="footer"
@@ -226,48 +225,67 @@ window.addEventListener('keydown', function(e) {
     if (e.key === 'Escape') closePreview();
 });
 
-// Teacher admin sidebar toggle (collapse only — never overlay content)
+// Teacher admin shell: fixed sidebar + margin-left (desktop), offcanvas (mobile)
 (function () {
-    const wrapper = document.getElementById('appWrapper');
+    const body = document.body;
     const toggle = document.getElementById('sidebarToggle');
-    const overlay = document.getElementById('adminSidebarOverlay');
-    if (!wrapper || !toggle) return;
+    const backdrop = document.getElementById('adminSidebarBackdrop');
+    if (!body.classList.contains('admin-body') || !toggle) return;
 
     const storageKey = 'bitlearn_sidebar_collapsed';
+    const mqMobile = window.matchMedia('(max-width: 767.98px)');
 
     function syncAria() {
-        const open = !wrapper.classList.contains('sidebar-collapsed');
-        toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
-        if (overlay) {
-            overlay.classList.remove('open');
-            overlay.setAttribute('aria-hidden', 'true');
+        const expanded = mqMobile.matches
+            ? body.classList.contains('admin-sidebar-open')
+            : !body.classList.contains('admin-sidebar-collapsed');
+        toggle.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+        if (backdrop) {
+            backdrop.setAttribute('aria-hidden', body.classList.contains('admin-sidebar-open') ? 'false' : 'true');
         }
     }
 
     function applyInitial() {
-        wrapper.classList.remove('sidebar-open');
-        if (localStorage.getItem(storageKey) === '1') {
-            wrapper.classList.add('sidebar-collapsed');
-        } else {
-            wrapper.classList.remove('sidebar-collapsed');
+        body.classList.remove('admin-sidebar-open');
+        if (!mqMobile.matches && localStorage.getItem(storageKey) === '1') {
+            body.classList.add('admin-sidebar-collapsed');
+        } else if (mqMobile.matches) {
+            body.classList.remove('admin-sidebar-collapsed');
         }
         syncAria();
     }
 
     toggle.addEventListener('click', function () {
-        wrapper.classList.toggle('sidebar-collapsed');
-        localStorage.setItem(
-            storageKey,
-            wrapper.classList.contains('sidebar-collapsed') ? '1' : '0'
-        );
+        if (mqMobile.matches) {
+            body.classList.toggle('admin-sidebar-open');
+        } else {
+            body.classList.toggle('admin-sidebar-collapsed');
+            localStorage.setItem(
+                storageKey,
+                body.classList.contains('admin-sidebar-collapsed') ? '1' : '0'
+            );
+        }
         syncAria();
     });
 
-    if (overlay) {
-        overlay.addEventListener('click', function () {
-            wrapper.classList.remove('sidebar-open');
+    if (backdrop) {
+        backdrop.addEventListener('click', function () {
+            body.classList.remove('admin-sidebar-open');
             syncAria();
         });
+    }
+
+    window.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape') {
+            body.classList.remove('admin-sidebar-open');
+            syncAria();
+        }
+    });
+
+    if (mqMobile.addEventListener) {
+        mqMobile.addEventListener('change', applyInitial);
+    } else if (mqMobile.addListener) {
+        mqMobile.addListener(applyInitial);
     }
 
     applyInitial();

@@ -38,6 +38,10 @@ body {
     flex-direction: column;
     overflow-x: hidden;
 }
+body.admin-body {
+    display: block;
+    overflow-x: hidden;
+}
 
 /* Base gradients and dynamic backgrounds */
 .bg-gradient-mesh {
