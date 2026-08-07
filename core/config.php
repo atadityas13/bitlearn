@@ -29,6 +29,7 @@ if (strpos($app_dir, $doc_root) === false && isset($_SERVER['SCRIPT_NAME'])) {
 define('BASE_URL', $protocol . '://' . $host . $base_path);
 
 $is_install_script = (basename($_SERVER['PHP_SELF']) === 'install.php');
+$is_api_request = defined('BITLEARN_API') && BITLEARN_API === true;
 
 // Create connection (silencing warnings so installer can handle errors gracefully)
 $conn = @new mysqli($db_host, $db_user, $db_pass);
@@ -44,7 +45,9 @@ if (!$conn->connect_error && $conn->select_db($db_name)) {
 
 // Redirect to install or gracefully die if db connection fails
 if (!$db_valid) {
-    if (!$is_install_script) {
+    if ($is_api_request) {
+        // API bootstrap will return JSON error
+    } elseif (!$is_install_script) {
         if (file_exists(__DIR__ . '/../install.php')) {
             header("Location: " . BASE_URL . "/install.php");
             exit;
