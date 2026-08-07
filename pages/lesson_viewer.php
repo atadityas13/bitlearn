@@ -18,7 +18,12 @@ $quiz_id_to_view = isset($_GET['quiz_id']) ? (int) $_GET['quiz_id'] : 0;
 $student_id = $_SESSION['user_id'];
 
 require_once '../core/CourseStudents.php';
-CourseStudents::ensureExclusionsTable($conn);
+$exJoin = '';
+$exWhere = '';
+if (CourseStudents::hasExclusionsTable($conn)) {
+    $exJoin = "LEFT JOIN course_exclusions cx ON cx.course_id = c.id AND cx.student_id = $student_id";
+    $exWhere = 'AND cx.id IS NULL';
+}
 
 // Verify enrollment
 $enroll_check = $conn->query("
@@ -27,10 +32,10 @@ $enroll_check = $conn->query("
     LEFT JOIN enrollments e ON c.id = e.course_id AND e.student_id = $student_id
     LEFT JOIN course_classes cc ON c.id = cc.course_id
     LEFT JOIN class_students cs ON cc.class_id = cs.class_id AND cs.student_id = $student_id
-    LEFT JOIN course_exclusions cx ON cx.course_id = c.id AND cx.student_id = $student_id
+    $exJoin
     WHERE c.id = $course_id
       AND (e.id IS NOT NULL OR cs.student_id IS NOT NULL)
-      AND cx.id IS NULL
+      $exWhere
 ");
 if (!$enroll_check || $enroll_check->num_rows === 0) {
     header("Location: student_dashboard.php");

@@ -5,13 +5,25 @@
  */
 class CourseStudents
 {
-    public static function ensureExclusionsTable(mysqli $conn): void
+    /** @var bool|null null=belum dicek, true=siap, false=gagal */
+    private static $exclusionsReady = null;
+
+    public static function ensureExclusionsTable(mysqli $conn): bool
     {
-        static $ready = false;
-        if ($ready) {
-            return;
+        if (self::$exclusionsReady === true) {
+            return true;
         }
-        $conn->query("
+        if (self::$exclusionsReady === false) {
+            return false;
+        }
+
+        $probe = @$conn->query("SELECT 1 FROM course_exclusions LIMIT 1");
+        if ($probe !== false) {
+            self::$exclusionsReady = true;
+            return true;
+        }
+
+        @$conn->query("
             CREATE TABLE IF NOT EXISTS course_exclusions (
                 id INT AUTO_INCREMENT PRIMARY KEY,
                 course_id INT NOT NULL,
@@ -22,7 +34,20 @@ class CourseStudents
                 KEY idx_student (student_id)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
         ");
-        $ready = true;
+
+        $probe = @$conn->query("SELECT 1 FROM course_exclusions LIMIT 1");
+        if ($probe !== false) {
+            self::$exclusionsReady = true;
+            return true;
+        }
+
+        self::$exclusionsReady = false;
+        return false;
+    }
+
+    public static function hasExclusionsTable(mysqli $conn): bool
+    {
+        return self::ensureExclusionsTable($conn);
     }
 
     /** Klausa SQL: siswa tidak dalam daftar exclusion course. */
@@ -33,6 +58,30 @@ class CourseStudents
             WHERE cx.course_id = {$courseAlias}.id
               AND cx.student_id = {$studentIdExpr}
         )";
+    }
+
+    public static function isExcluded(mysqli $conn, int $courseId, int $studentId): bool
+    {
+        if (!self::ensureExclusionsTable($conn)) {
+            return false;
+        }
+        $res = $conn->query("
+            SELECT id FROM course_exclusions
+            WHERE course_id = $courseId AND student_id = $studentId
+            LIMIT 1
+        ");
+        return $res && $res->num_rows > 0;
+    }
+
+    public static function clearExclusion(mysqli $conn, int $courseId, int $studentId): void
+    {
+        if (!self::ensureExclusionsTable($conn)) {
+            return;
+        }
+        $conn->query("
+            DELETE FROM course_exclusions
+            WHERE course_id = $courseId AND student_id = $studentId
+        ");
     }
 
     public static function teacherOwnsCourse(mysqli $conn, int $teacherId, int $courseId): bool

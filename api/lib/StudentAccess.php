@@ -2,31 +2,50 @@
 
 class StudentAccess
 {
-    public static function accessibleCoursesSql(int $studentId): string
+    /** Filter exclusion hanya jika tabel siap; jika tidak, jangan JOIN agar daftar course tidak kosong. */
+    private static function exclusionSqlParts(mysqli $conn, int $studentId): array
     {
+        $use = class_exists('CourseStudents') && CourseStudents::hasExclusionsTable($conn);
+        if (!$use) {
+            return ['join' => '', 'where' => ''];
+        }
+        return [
+            'join' => "LEFT JOIN course_exclusions cx ON cx.course_id = c.id AND cx.student_id = $studentId",
+            'where' => 'AND cx.id IS NULL',
+        ];
+    }
+
+    public static function accessibleCoursesSql(int $studentId, ?mysqli $conn = null): string
+    {
+        $exJoin = '';
+        $exWhere = '';
+        if ($conn instanceof mysqli) {
+            $ex = self::exclusionSqlParts($conn, $studentId);
+            $exJoin = $ex['join'];
+            $exWhere = $ex['where'];
+        } else {
+            // Caller tanpa $conn: pakai NOT EXISTS (butuh tabel course_exclusions).
+            $exWhere = "AND NOT EXISTS (
+                SELECT 1 FROM course_exclusions cx
+                WHERE cx.course_id = c.id AND cx.student_id = $studentId
+            )";
+        }
+
         return "
             SELECT DISTINCT c.*
             FROM courses c
             LEFT JOIN enrollments e ON c.id = e.course_id AND e.student_id = $studentId
             LEFT JOIN course_classes cc ON c.id = cc.course_id
             LEFT JOIN class_students cs ON cc.class_id = cs.class_id AND cs.student_id = $studentId
-            LEFT JOIN course_exclusions cx ON cx.course_id = c.id AND cx.student_id = $studentId
+            $exJoin
             WHERE (e.id IS NOT NULL OR cs.student_id IS NOT NULL)
-              AND cx.id IS NULL
+              $exWhere
         ";
     }
 
     public static function canAccessCourse(mysqli $conn, int $studentId, int $courseId): bool
     {
-        // Pastikan tabel exclusion ada (aman dipanggil berulang)
-        if (class_exists('CourseStudents')) {
-            CourseStudents::ensureExclusionsTable($conn);
-        } else {
-            @include_once dirname(__DIR__, 2) . '/core/CourseStudents.php';
-            if (class_exists('CourseStudents')) {
-                CourseStudents::ensureExclusionsTable($conn);
-            }
-        }
+        $ex = self::exclusionSqlParts($conn, $studentId);
 
         $sql = "
             SELECT c.id
@@ -34,10 +53,10 @@ class StudentAccess
             LEFT JOIN enrollments e ON c.id = e.course_id AND e.student_id = $studentId
             LEFT JOIN course_classes cc ON c.id = cc.course_id
             LEFT JOIN class_students cs ON cc.class_id = cs.class_id AND cs.student_id = $studentId
-            LEFT JOIN course_exclusions cx ON cx.course_id = c.id AND cx.student_id = $studentId
+            {$ex['join']}
             WHERE c.id = $courseId
               AND (e.id IS NOT NULL OR cs.student_id IS NOT NULL)
-              AND cx.id IS NULL
+              {$ex['where']}
             LIMIT 1
         ";
         $res = $conn->query($sql);

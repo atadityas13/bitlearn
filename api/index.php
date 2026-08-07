@@ -100,7 +100,7 @@ if ($route === '/student/dashboard' && $method === 'GET') {
     $studentId = (int) $user['id'];
 
     $courses = [];
-    $courseRes = $conn->query(StudentAccess::accessibleCoursesSql($studentId));
+    $courseRes = $conn->query(StudentAccess::accessibleCoursesSql($studentId, $conn));
     if ($courseRes) {
         while ($row = $courseRes->fetch_assoc()) {
             $courses[] = StudentAccess::coursePayload($row, $baseUrl);
@@ -108,6 +108,12 @@ if ($route === '/student/dashboard' && $method === 'GET') {
     }
 
     $pending = [];
+    $exParts = '';
+    $exJoin = '';
+    if (CourseStudents::hasExclusionsTable($conn)) {
+        $exJoin = "LEFT JOIN course_exclusions cx ON cx.course_id = c.id AND cx.student_id = $studentId";
+        $exParts = 'AND cx.id IS NULL';
+    }
     $pendingRes = $conn->query("
         SELECT a.*, c.title AS course_name
         FROM assignments a
@@ -116,7 +122,9 @@ if ($route === '/student/dashboard' && $method === 'GET') {
         LEFT JOIN course_classes cc ON c.id = cc.course_id
         LEFT JOIN class_students cs ON cc.class_id = cs.class_id AND cs.student_id = $studentId
         LEFT JOIN submissions s ON a.id = s.assignment_id AND s.student_id = $studentId
+        $exJoin
         WHERE (e.id IS NOT NULL OR cs.student_id IS NOT NULL)
+          $exParts
           AND s.id IS NULL
           AND a.due_date > NOW()
           AND a.is_published = 1
@@ -166,11 +174,27 @@ if ($route === '/courses/enroll' && $method === 'POST') {
     $courseId = (int) $course['id'];
 
     $check = $conn->query("SELECT id FROM enrollments WHERE course_id = $courseId AND student_id = $studentId");
-    if ($check && $check->num_rows > 0) {
+    $alreadyEnrolled = $check && $check->num_rows > 0;
+    $wasExcluded = CourseStudents::isExcluded($conn, $courseId, $studentId);
+
+    if ($alreadyEnrolled) {
+        // Gabung ulang setelah unenroll: pulihkan akses, jangan 409
+        if ($wasExcluded) {
+            CourseStudents::clearExclusion($conn, $courseId, $studentId);
+            ApiResponse::success(
+                StudentAccess::coursePayload($course, $baseUrl),
+                'Akses mata pelajaran dipulihkan'
+            );
+        }
         ApiResponse::error('Anda sudah tergabung dalam pelajaran ini.', 409);
     }
 
-    $conn->query("INSERT INTO enrollments (course_id, student_id) VALUES ($courseId, $studentId)");
+    $ok = $conn->query("INSERT INTO enrollments (course_id, student_id) VALUES ($courseId, $studentId)");
+    if (!$ok) {
+        ApiResponse::error('Gagal bergabung ke mata pelajaran. Coba lagi.', 500);
+    }
+    // Gabung dengan kode = izin masuk kembali (hapus exclusion jika ada)
+    CourseStudents::clearExclusion($conn, $courseId, $studentId);
     ApiResponse::success(StudentAccess::coursePayload($course, $baseUrl), 'Berhasil bergabung ke mata pelajaran');
 }
 
