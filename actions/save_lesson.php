@@ -67,8 +67,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     $is_published = isset($_POST['is_published']) ? (int)$_POST['is_published'] : 1;
 
-    $sql = "INSERT INTO lessons (module_id, title, description, content_type, url_embed, document_path, is_prerequisite_of, is_published) 
-            VALUES ($module_id, '$title', '$description', '$content_type', '$url_embed', $doc_path_val, $is_prerequisite_of, $is_published)";
+    require_once '../core/LessonSettings.php';
+    LessonSettings::ensureDwellColumn($conn);
+    $dwell_minutes = LessonSettings::parseDwellMinutesFromPost($_POST, 1);
+
+    $sql = "INSERT INTO lessons (module_id, title, description, content_type, url_embed, document_path, is_prerequisite_of, is_published, dwell_minutes) 
+            VALUES ($module_id, '$title', '$description', '$content_type', '$url_embed', $doc_path_val, $is_prerequisite_of, $is_published, $dwell_minutes)";
             
     if ($conn->query($sql) === TRUE) {
         $lesson_id = $conn->insert_id;

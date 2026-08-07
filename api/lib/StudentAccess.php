@@ -210,7 +210,13 @@ class StudentAccess
             'viewer_url' => $viewerUrl,
             'media_kind' => $mediaKind,
             'file_extension' => $ext !== '' ? $ext : null,
-            'completion' => self::buildCompletionRule($type, $mediaKind, $ext, $viewerUrl),
+            'completion' => self::buildCompletionRule(
+                $type,
+                $mediaKind,
+                $ext,
+                $viewerUrl,
+                isset($lesson['dwell_minutes']) ? (int) $lesson['dwell_minutes'] : null
+            ),
         ];
     }
 
@@ -229,12 +235,24 @@ class StudentAccess
     /**
      * Aturan penyelesaian materi — mirror logic web lesson_viewer.php,
      * dengan fallback lebih jelas untuk non-YouTube.
+     * @param int|null $dwellMinutes menit dari pengaturan guru (PDF/slides)
      */
-    public static function buildCompletionRule(string $contentType, string $mediaKind, string $ext, ?string $viewerUrl): array
-    {
+    public static function buildCompletionRule(
+        string $contentType,
+        string $mediaKind,
+        string $ext,
+        ?string $viewerUrl,
+        ?int $dwellMinutes = null
+    ): array {
         $type = strtolower(trim($contentType));
         $kind = strtolower(trim($mediaKind));
         $ext = strtolower(trim($ext));
+
+        if (class_exists('LessonSettings')) {
+            // no-op; label helper
+        } else {
+            @include_once dirname(__DIR__, 2) . '/core/LessonSettings.php';
+        }
 
         if ($type === 'quiz' || $kind === 'quiz') {
             return [
@@ -257,7 +275,6 @@ class StudentAccess
                     'label' => 'Tonton video sampai selesai (tidak bisa dilewati)',
                 ];
             }
-            // Non-YouTube (Drive, dll.): dwell 2 menit, pause-aware (lebih baik dari web)
             return [
                 'mode' => 'dwell',
                 'required_seconds' => 120,
@@ -267,13 +284,19 @@ class StudentAccess
             ];
         }
 
-        if (in_array($type, ['slideshow', 'ppt_slideshow', 'pdf_embed'], true) || in_array($kind, ['slideshow'], true)) {
+        // PDF embed / slideshow: pakai menit dari guru
+        if (in_array($type, ['slideshow', 'ppt_slideshow', 'pdf_embed'], true) || $kind === 'slideshow') {
+            $minutes = $dwellMinutes !== null ? max(0, $dwellMinutes) : 1;
+            $seconds = $minutes * 60;
+            $label = class_exists('LessonSettings')
+                ? LessonSettings::formatDwellLabel($seconds)
+                : ('Baca materi minimal ' . max(0, $minutes) . ' menit');
             return [
                 'mode' => 'dwell',
-                'required_seconds' => 300,
+                'required_seconds' => $seconds,
                 'youtube_id' => null,
                 'pause_aware' => true,
-                'label' => 'Pelajari materi minimal 5 menit (timer berhenti jika aplikasi tidak aktif)',
+                'label' => $label,
             ];
         }
 
@@ -288,12 +311,17 @@ class StudentAccess
                 ];
             }
             if ($ext === 'pdf' || $kind === 'pdf') {
+                $minutes = $dwellMinutes !== null ? max(0, $dwellMinutes) : 1;
+                $seconds = $minutes * 60;
+                $label = class_exists('LessonSettings')
+                    ? LessonSettings::formatDwellLabel($seconds)
+                    : ('Baca PDF minimal ' . max(0, $minutes) . ' menit');
                 return [
                     'mode' => 'dwell',
-                    'required_seconds' => 30,
+                    'required_seconds' => $seconds,
                     'youtube_id' => null,
                     'pause_aware' => true,
-                    'label' => 'Baca PDF minimal 30 detik (timer berhenti jika aplikasi tidak aktif)',
+                    'label' => $label,
                 ];
             }
             return [

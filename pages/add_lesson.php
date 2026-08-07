@@ -94,6 +94,17 @@ require_once '../components/header.php';
                     <p style="font-size:0.9rem;">Anda akan dialihkan ke **halaman Perakit Soal Pilihan Ganda** setelah
                         menekan tombol "Terbitkan" di bawah ini.</p>
                 </div>
+
+                <div id="dwell_field" class="form-group" style="display:none;">
+                    <label class="form-label"><i class="uil uil-clock"></i> Durasi baca minimal (menit)</label>
+                    <input type="number" name="dwell_minutes" id="dwell_minutes" class="form-control"
+                        min="0" max="180" step="1" value="1"
+                        style="max-width:140px;">
+                    <small style="color:var(--text-muted); display:block; margin-top:0.35rem;">
+                        Waktu yang harus dilalui siswa sebelum tombol <b>Selesai</b> aktif (PDF / presentasi).
+                        Isi <b>0</b> jika langsung bisa selesai. Default: 1 menit (bukan 5 menit).
+                    </small>
+                </div>
             </div>
 
             <div class="form-group" style="margin-top:2rem;">
@@ -131,10 +142,12 @@ require_once '../components/header.php';
         var label = document.getElementById('url_label');
         var input = document.getElementById('url_embed_input');
         var hint = document.getElementById('url_hint');
+        var dwell = document.getElementById('dwell_field');
         // hide all first
         document.getElementById('video_field').style.display = 'none';
         document.getElementById('doc_field').style.display = 'none';
         document.getElementById('quiz_field').style.display = 'none';
+        dwell.style.display = 'none';
 
         if (type === 'video_embed') {
             document.getElementById('video_field').style.display = 'block';
@@ -143,11 +156,13 @@ require_once '../components/header.php';
             hint.innerText = 'Sistem kami akan otomatis mengonversi tautan YouTube agar bisa diputar di aplikasi.';
         } else if (type === 'slideshow') {
             document.getElementById('video_field').style.display = 'block';
+            dwell.style.display = 'block';
             label.innerText = 'Tautan Embed Google Slides';
             input.placeholder = 'https://docs.google.com/presentation/d/.../edit';
             hint.innerHTML = '<b>Tips:</b> Anda cukup menyalin link "Bagikan" biasa dari Google Slides. Sistem akan otomatis mengubahnya agar bisa tampil di aplikasi.';
         } else if (type === 'pdf_embed') {
             document.getElementById('video_field').style.display = 'block';
+            dwell.style.display = 'block';
             label.innerText = 'Tautan Embed PDF (Google Drive)';
             input.placeholder = 'https://drive.google.com/file/d/.../view';
             hint.innerHTML = '<b>Tips:</b> Cukup salin link "Bagikan" dari Google Drive. Sistem akan otomatis mengubahnya agar bisa tampil di aplikasi.';
@@ -155,6 +170,7 @@ require_once '../components/header.php';
             document.getElementById('quiz_field').style.display = 'block';
         }
     }
+    document.addEventListener('DOMContentLoaded', toggleMediaFields);
 </script>
 
 <?php require_once '../components/footer.php'; ?>

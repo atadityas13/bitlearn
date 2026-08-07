@@ -1,9 +1,11 @@
 <?php
 require_once '../core/config.php';
+require_once '../core/LessonSettings.php';
 if (!isset($_SESSION['user_id']) || $_SESSION['user_role'] !== 'teacher') { header("Location: ../index.php"); exit; }
 
 $lesson_id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
 $teacher_id = $_SESSION['user_id'];
+LessonSettings::ensureDwellColumn($conn);
 
 // Get Lesson & Verify
 $les_query = $conn->query("
@@ -115,6 +117,21 @@ $slides_text = "";
                     <label class="form-label"><i class="uil uil-processor"></i> Mode Kuis</label>
                     <p style="font-size:0.9rem;">Catatan: Mengubah tipe materi ke Kuis akan meniadakan Dokumen Media yang sudah diinput. Edit butir soal bisa dilakukan dari panel course utama.</p>
                 </div>
+
+                <?php
+                $dwellVal = isset($lesson['dwell_minutes']) ? (int)$lesson['dwell_minutes'] : 1;
+                $showDwell = in_array($lesson['content_type'], ['pdf_embed', 'slideshow', 'document_upload'], true);
+                ?>
+                <div id="dwell_field" class="form-group" style="<?php echo $showDwell ? '' : 'display:none;'; ?>">
+                    <label class="form-label"><i class="uil uil-clock"></i> Durasi baca minimal (menit)</label>
+                    <input type="number" name="dwell_minutes" id="dwell_minutes" class="form-control"
+                        min="0" max="180" step="1" value="<?php echo $dwellVal; ?>"
+                        style="max-width:140px;">
+                    <small style="color:var(--text-muted); display:block; margin-top:0.35rem;">
+                        Waktu yang harus dilalui siswa sebelum tombol <b>Selesai</b> aktif (PDF / presentasi).
+                        Isi <b>0</b> jika langsung bisa selesai.
+                    </small>
+                </div>
             </div>
 
             <div class="form-group" style="margin-top:2rem;">
@@ -151,11 +168,13 @@ function toggleMediaFields() {
     var label = document.getElementById('url_label');
     var input = document.getElementById('url_embed_input');
     var hint = document.getElementById('url_hint');
+    var dwell = document.getElementById('dwell_field');
 
     // hide all
     document.getElementById('video_field').style.display = 'none';
     document.getElementById('doc_field').style.display = 'none';
     document.getElementById('quiz_field').style.display = 'none';
+    dwell.style.display = 'none';
 
     if (type === 'video_embed') {
         document.getElementById('video_field').style.display = 'block';
@@ -164,16 +183,19 @@ function toggleMediaFields() {
         hint.innerText = 'Sistem kami akan otomatis mengonversi tautan YouTube agar bisa diputar di aplikasi.';
     } else if (type === 'slideshow') {
         document.getElementById('video_field').style.display = 'block';
+        dwell.style.display = 'block';
         label.innerText = 'Tautan Embed Google Slides';
         input.placeholder = 'https://docs.google.com/presentation/d/.../edit';
         hint.innerHTML = '<b>Tips:</b> Anda cukup menyalin link "Bagikan" biasa dari Google Slides. Sistem akan otomatis mengubahnya agar bisa tampil di aplikasi.';
     } else if (type === 'pdf_embed') {
         document.getElementById('video_field').style.display = 'block';
+        dwell.style.display = 'block';
         label.innerText = 'Tautan Embed PDF (Google Drive)';
         input.placeholder = 'https://drive.google.com/file/d/.../view';
         hint.innerHTML = '<b>Tips:</b> Cukup salin link "Bagikan" dari Google Drive. Sistem akan otomatis mengubahnya agar bisa tampil di aplikasi.';
     } else if (type === 'document_upload') {
         document.getElementById('doc_field').style.display = 'block';
+        dwell.style.display = 'block';
     } else if (type === 'quiz') {
         document.getElementById('quiz_field').style.display = 'block';
     }

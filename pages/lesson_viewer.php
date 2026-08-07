@@ -18,6 +18,8 @@ $quiz_id_to_view = isset($_GET['quiz_id']) ? (int) $_GET['quiz_id'] : 0;
 $student_id = $_SESSION['user_id'];
 
 require_once '../core/CourseStudents.php';
+require_once '../core/LessonSettings.php';
+LessonSettings::ensureDwellColumn($conn);
 $exJoin = '';
 $exWhere = '';
 if (CourseStudents::hasExclusionsTable($conn)) {
@@ -129,10 +131,12 @@ if ($lesson_id_to_view > 0) {
 }
 
 $is_current_completed = false;
+$dwell_ms = 60000; // default 1 menit
 if ($current_lesson) {
     $cl_id = $current_lesson['id'];
     $chk = $conn->query("SELECT id FROM user_progress WHERE student_id = $student_id AND lesson_id = $cl_id");
     $is_current_completed = ($chk && $chk->num_rows > 0);
+    $dwell_ms = LessonSettings::dwellSeconds($current_lesson, 1) * 1000;
 }
 
 $is_current_submitted = false;
@@ -684,7 +688,7 @@ require_once '../components/header.php';
                                 <script>
                                     setTimeout(function () {
                                         mediaConditionMet = true; checkUnlockMarkBtn();
-                                    }, 30000); // 30 seconds
+                                    }, <?php echo (int)$dwell_ms; ?>);
                                 </script>
                             <?php elseif (in_array($docExt, ['jpg', 'jpeg', 'png'])): ?>
                                 <!-- Images -->
@@ -758,7 +762,7 @@ require_once '../components/header.php';
                             setTimeout(function () {
                                 mediaConditionMet = true;
                                 checkUnlockMarkBtn();
-                            }, 300000); // minimal 5 menit menonton slides
+                            }, <?php echo (int)$dwell_ms; ?>);
 
                             function toggleFullScreenSlide(e) {
                                 e.stopPropagation();
@@ -849,7 +853,7 @@ require_once '../components/header.php';
                             setTimeout(function () {
                                 mediaConditionMet = true;
                                 checkUnlockMarkBtn();
-                            }, 300000); // minimal 5 menit membaca PDF
+                            }, <?php echo (int)$dwell_ms; ?>);
 
                             function toggleFullScreenPdf(e) {
                                 e.stopPropagation();

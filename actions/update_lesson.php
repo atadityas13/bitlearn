@@ -34,6 +34,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $update_fields[] = "is_prerequisite_of = $is_prereq";
     $update_fields[] = "is_published = $is_published";
 
+    require_once '../core/LessonSettings.php';
+    LessonSettings::ensureDwellColumn($conn);
+    $dwell_minutes = LessonSettings::parseDwellMinutesFromPost($_POST, 1);
+    $update_fields[] = "dwell_minutes = $dwell_minutes";
+
     if ($content_type === 'video_embed' || $content_type === 'slideshow' || $content_type === 'pdf_embed') {
         $url_embed = trim($_POST['url_embed']);
         if(preg_match('/src="([^"]+)"/', $url_embed, $match)) {
