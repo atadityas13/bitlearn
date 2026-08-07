@@ -78,24 +78,23 @@ if(isset($_SESSION['error'])) {
                     </a>
                 </nav>
                 <div class="sidebar-footer">
-                    <div class="profile-row" style="display:flex; align-items:center; gap:1rem; margin-bottom:1rem;">
+                    <div class="profile-row">
                         <?php $prof_pic = isset($_SESSION['profile_pic']) && !empty($_SESSION['profile_pic']) ? BASE_URL . '/uploads/' . $_SESSION['profile_pic'] : null; ?>
                         <?php if($prof_pic): ?>
-                            <img src="<?php echo htmlspecialchars($prof_pic); ?>" alt="Avatar" style="width:45px; height:45px; border-radius:50%; object-fit:cover; border:2px solid var(--primary); flex-shrink:0;">
+                            <img src="<?php echo htmlspecialchars($prof_pic); ?>" alt="Avatar" style="width:42px; height:42px; border-radius:50%; object-fit:cover; border:2px solid var(--primary); flex-shrink:0;">
                         <?php else: ?>
-                            <div style="width:45px; height:45px; border-radius:50%; background:var(--surface); display:flex; align-items:center; justify-content:center; border:2px solid var(--primary); font-size:1.5rem; color:var(--text-muted); flex-shrink:0;">
+                            <div style="width:42px; height:42px; border-radius:50%; background:var(--surface); display:flex; align-items:center; justify-content:center; border:2px solid var(--primary); font-size:1.35rem; color:var(--text-muted); flex-shrink:0;">
                                 <i class="uil uil-user"></i>
                             </div>
                         <?php endif; ?>
-                        <div class="user-meta" style="flex:1; overflow:hidden;">
-                            <div style="font-size:0.95rem; font-weight:600; color:var(--text-main); white-space:nowrap; text-overflow:ellipsis; overflow:hidden;"><?php echo htmlspecialchars($_SESSION['user_name']); ?></div>
-                            <div style="font-size:0.75rem; color:var(--text-muted);">Akun Guru</div>
+                        <div class="user-meta" style="flex:1; overflow:hidden; min-width:0;">
+                            <div style="font-size:0.9rem; font-weight:600; color:var(--text-main); white-space:nowrap; text-overflow:ellipsis; overflow:hidden;"><?php echo htmlspecialchars($_SESSION['user_name']); ?></div>
+                            <div style="font-size:0.72rem; color:var(--text-muted);">Akun Guru</div>
                         </div>
                     </div>
-                    
-                    <div class="profile-actions" style="display:flex; gap:0.5rem;">
-                        <a href="<?php echo BASE_URL; ?>/pages/edit_profile.php" class="btn btn-secondary" style="flex:1; padding:0.5rem; font-size:0.85rem;" title="Pengaturan Profil"><i class="uil uil-user-circle"></i> <span class="btn-label">Profil</span></a>
-                        <a href="<?php echo BASE_URL; ?>/actions/logout.php" class="btn btn-danger" style="flex:0 0 auto; padding:0.5rem 0.8rem;" title="Keluar"><i class="uil uil-sign-out-alt"></i></a>
+                    <div class="profile-actions">
+                        <a href="<?php echo BASE_URL; ?>/pages/edit_profile.php" class="btn btn-secondary btn-profile" title="Pengaturan Profil"><i class="uil uil-user-circle"></i> <span class="btn-label">Profil</span></a>
+                        <a href="<?php echo BASE_URL; ?>/actions/logout.php" class="btn btn-danger btn-logout" title="Keluar"><i class="uil uil-sign-out-alt"></i></a>
                     </div>
                 </div>
             </aside>

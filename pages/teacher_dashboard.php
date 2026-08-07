@@ -12,59 +12,64 @@ $ungraded_submissions = $conn->query("SELECT COUNT(s.id) as sum FROM submissions
 $total_submissions = $conn->query("SELECT COUNT(s.id) as sum FROM submissions s JOIN assignments a ON s.assignment_id = a.id JOIN courses c ON a.course_id = c.id WHERE c.teacher_id = $teacher_id")->fetch_assoc()['sum'];
 $unique_student_sum = $conn->query("SELECT COUNT(DISTINCT s.student_id) as sum FROM submissions s JOIN assignments a ON s.assignment_id = a.id JOIN courses c ON a.course_id = c.id WHERE c.teacher_id = $teacher_id")->fetch_assoc()['sum'];
 
+$user_name = rtrim((string)$_SESSION['user_name'], " \t\n\r\0\x0B.");
 $page_title = 'Beranda Guru';
 require_once '../components/header.php';
 ?>
-<div class="container main-content">
-    <div class="page-header">
+<div class="container main-content dash-home">
+    <div class="page-header dash-home-header">
         <div>
             <h2><i class="uil uil-estate"></i> Beranda Edukator</h2>
-            <p class="text-muted" style="margin-bottom:0;">Selamat datang, <?php echo htmlspecialchars($_SESSION['user_name']); ?>. Pantau aktivitas belajar mengajar Anda di sini.</p>
+            <p class="text-muted dash-home-sub">Selamat datang, <?php echo htmlspecialchars($user_name); ?>. Pantau aktivitas belajar mengajar Anda di sini.</p>
         </div>
     </div>
 
-    <div class="stats-grid" style="margin-bottom:2rem;">
-        <div class="glass-card" style="text-align:center;">
-            <i class="uil uil-users-alt" style="font-size:3rem; color:var(--primary);"></i>
-            <h3><?php echo $classes_count; ?> Rombel</h3>
-            <p style="color:var(--text-muted); font-size:0.9rem;">Total Rombongan Belajar</p>
+    <div class="stats-grid dash-stats">
+        <div class="glass-card dash-stat">
+            <div class="dash-stat-icon is-primary"><i class="uil uil-users-alt"></i></div>
+            <div class="dash-stat-body">
+                <div class="dash-stat-value"><?php echo (int)$classes_count; ?></div>
+                <div class="dash-stat-label">Rombel</div>
+                <div class="dash-stat-hint">Total rombongan belajar</div>
+            </div>
         </div>
-        <div class="glass-card" style="text-align:center;">
-            <i class="uil uil-books" style="font-size:3rem; color:var(--secondary);"></i>
-            <h3><?php echo $courses_count; ?> Mata Pelajaran</h3>
-            <p style="color:var(--text-muted); font-size:0.9rem;">Total Modul Aktif</p>
+        <div class="glass-card dash-stat">
+            <div class="dash-stat-icon is-success"><i class="uil uil-books"></i></div>
+            <div class="dash-stat-body">
+                <div class="dash-stat-value"><?php echo (int)$courses_count; ?></div>
+                <div class="dash-stat-label">Mata Pelajaran</div>
+                <div class="dash-stat-hint">Total modul aktif</div>
+            </div>
         </div>
-        <div class="glass-card" style="text-align:center;">
-            <i class="uil uil-user" style="font-size:3rem; color:var(--warning);"></i>
-            <h3><?php echo $students_count; ?> Siswa</h3>
-            <p style="color:var(--text-muted); font-size:0.9rem;">Total Siswa Sistem Terdaftar</p>
+        <div class="glass-card dash-stat">
+            <div class="dash-stat-icon is-warning"><i class="uil uil-user"></i></div>
+            <div class="dash-stat-body">
+                <div class="dash-stat-value"><?php echo (int)$students_count; ?></div>
+                <div class="dash-stat-label">Siswa</div>
+                <div class="dash-stat-hint">Total siswa terdaftar</div>
+            </div>
         </div>
     </div>
 
-    <!-- Stats Tugas -->
-    <h3 style="margin-bottom:1rem; padding-bottom:0.5rem; border-bottom:1px solid rgba(255,255,255,0.1);"><i class="uil uil-clipboard-notes"></i> Pantauan Penugasan</h3>
-    <div class="grid grid-cols-2" style="margin-bottom:2rem;">
-        <a href="teacher_grading.php" style="text-decoration:none; color:inherit;">
-            <div class="glass-card flex-split" style="align-items:center; cursor:pointer; background:linear-gradient(135deg, rgba(239, 68, 68, 0.1) 0%, rgba(0,0,0,0.4) 100%); border:1px solid rgba(239,68,68,0.3);">
-                <div>
-                    <h2 style="font-size:2.5rem; margin:0; color:var(--danger);"><?php echo $ungraded_submissions; ?></h2>
-                    <h4 style="margin:0; font-size:1.1rem; color:var(--text-main);">Tugas Belum Dinilai</h4>
-                    <p style="color:var(--text-muted); font-size:0.85rem; margin-top:0.3rem;">Koreksi dan berikan nilai pada siswa Anda.</p>
+    <div class="dash-section">
+        <h3 class="dash-section-title"><i class="uil uil-clipboard-notes"></i> Pantauan Penugasan</h3>
+        <div class="grid grid-cols-2 dash-monitor-grid">
+            <a href="teacher_grading.php" class="glass-card dash-monitor is-danger">
+                <div class="dash-monitor-body">
+                    <div class="dash-monitor-value"><?php echo (int)$ungraded_submissions; ?></div>
+                    <div class="dash-monitor-label">Tugas Belum Dinilai</div>
+                    <p class="dash-monitor-hint">Koreksi dan berikan nilai pada siswa Anda.</p>
                 </div>
-                <div style="background:rgba(239,68,68,0.2); padding:1.5rem; border-radius:50%;">
-                    <i class="uil uil-file-times-alt" style="font-size:2.5rem; color:var(--danger);"></i>
-                </div>
-            </div>
-        </a>
+                <div class="dash-monitor-icon"><i class="uil uil-file-times-alt"></i></div>
+            </a>
 
-        <div class="glass-card flex-split" style="align-items:center; background:linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(0,0,0,0.4) 100%); border:1px solid rgba(16,185,129,0.3);">
-            <div>
-                <h2 style="font-size:2.5rem; margin:0; color:var(--secondary);"><?php echo $total_submissions; ?></h2>
-                <h4 style="margin:0; font-size:1.1rem; color:var(--text-main);">Pekerjaan Terkumpul</h4>
-                <p style="color:var(--text-muted); font-size:0.85rem; margin-top:0.3rem;">Dari <?php echo $unique_student_sum; ?> siswa yang telah berpartisipasi.</p>
-            </div>
-            <div style="background:rgba(16,185,129,0.2); padding:1.5rem; border-radius:50%;">
-                <i class="uil uil-file-check-alt" style="font-size:2.5rem; color:var(--secondary);"></i>
+            <div class="glass-card dash-monitor is-success">
+                <div class="dash-monitor-body">
+                    <div class="dash-monitor-value"><?php echo (int)$total_submissions; ?></div>
+                    <div class="dash-monitor-label">Pekerjaan Terkumpul</div>
+                    <p class="dash-monitor-hint">Dari <?php echo (int)$unique_student_sum; ?> siswa yang telah berpartisipasi.</p>
+                </div>
+                <div class="dash-monitor-icon"><i class="uil uil-file-check-alt"></i></div>
             </div>
         </div>
     </div>
