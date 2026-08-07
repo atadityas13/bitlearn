@@ -115,7 +115,7 @@ if ($route === '/student/dashboard' && $method === 'GET') {
         $exParts = 'AND cx.id IS NULL';
     }
     $pendingRes = $conn->query("
-        SELECT a.*, c.title AS course_name
+        SELECT DISTINCT a.id, a.course_id, a.title, a.description, a.due_date, a.file_path, c.title AS course_name
         FROM assignments a
         JOIN courses c ON a.course_id = c.id
         LEFT JOIN enrollments e ON c.id = e.course_id AND e.student_id = $studentId
@@ -561,6 +561,10 @@ if (preg_match('#^/assignments/(\d+)$#', $route, $m) && $method === 'GET') {
         ];
     }
 
+    $dueTs = strtotime((string) ($asn['due_date'] ?? ''));
+    $isClosed = ($dueTs !== false && $dueTs < time());
+    $canSubmit = !$locked && $submission === null && !$isClosed;
+
     ApiResponse::success([
         'id' => $assignmentId,
         'course_id' => $courseId,
@@ -570,6 +574,8 @@ if (preg_match('#^/assignments/(\d+)$#', $route, $m) && $method === 'GET') {
         'due_date' => $asn['due_date'],
         'file_url' => StudentAccess::absoluteUploadUrl($asn['file_path'] ?? null, $baseUrl),
         'is_locked' => $locked,
+        'is_closed' => $isClosed,
+        'can_submit' => $canSubmit,
         'missing_prerequisite_title' => $missingPrereq,
         'submission' => $submission,
     ]);
@@ -592,6 +598,11 @@ if (preg_match('#^/assignments/(\d+)/submit$#', $route, $m) && $method === 'POST
 
     if (!StudentAccess::canAccessCourse($conn, $studentId, $courseId)) {
         ApiResponse::error('Akses ditolak.', 403);
+    }
+
+    $dueTs = strtotime((string) ($asn['due_date'] ?? ''));
+    if ($dueTs !== false && $dueTs < time()) {
+        ApiResponse::error('Batas waktu pengumpulan sudah lewat. Tugas tidak dapat dikumpulkan.', 422);
     }
 
     $existing = $conn->query("SELECT id FROM submissions WHERE student_id = $studentId AND assignment_id = $assignmentId");

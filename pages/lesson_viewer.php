@@ -141,6 +141,7 @@ if ($current_lesson) {
 
 $is_current_submitted = false;
 $existing_submission = null;
+$assignment_closed = false;
 if ($current_assignment) {
     $ca_id = $current_assignment['id'];
     $chk = $conn->query("SELECT * FROM submissions WHERE student_id = $student_id AND assignment_id = $ca_id");
@@ -148,6 +149,8 @@ if ($current_assignment) {
         $is_current_submitted = true;
         $existing_submission = $chk->fetch_assoc();
     }
+    $dueTs = strtotime((string) ($current_assignment['due_date'] ?? ''));
+    $assignment_closed = ($dueTs !== false && $dueTs < time());
 }
 
 $page_title = $course['title'] . ' | Pelajar';
@@ -357,6 +360,13 @@ require_once '../components/header.php';
                                         <?php endif; ?>
                                     </div>
                                 <?php endif; ?>
+                            </div>
+                        <?php elseif ($assignment_closed): ?>
+                            <div
+                                style="background:rgba(239, 68, 68, 0.1); border:1px solid rgba(239, 68, 68, 0.3); padding:2rem; border-radius:var(--radius-sm); text-align:center;">
+                                <i class="uil uil-clock-eight" style="font-size:3rem; color:var(--danger); display:block; margin-bottom:0.8rem;"></i>
+                                <h3 style="color:var(--danger); margin-bottom:0.5rem;">Batas Waktu Habis</h3>
+                                <p style="color:var(--text-muted); margin:0;">Pengumpulan tugas sudah ditutup. Anda tidak dapat mengunggah jawaban lagi.</p>
                             </div>
                         <?php else: ?>
                             <form action="../actions/submit_upload.php" method="POST" enctype="multipart/form-data"
