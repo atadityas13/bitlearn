@@ -3,49 +3,150 @@ require_once '../core/config.php';
 if (!isset($_SESSION['user_id']) || $_SESSION['user_role'] !== 'teacher') { header("Location: ../index.php"); exit; }
 
 $teacher_id = (int)$_SESSION['user_id'];
+
 $status = isset($_GET['status']) ? (string)$_GET['status'] : 'all';
 if (!in_array($status, ['all', 'ungraded', 'graded'], true)) {
     $status = 'all';
 }
 
-$where = "WHERE c.teacher_id = $teacher_id";
-if ($status === 'ungraded') {
-    $where .= " AND s.grade IS NULL";
-} elseif ($status === 'graded') {
-    $where .= " AND s.grade IS NOT NULL";
+$course_id = isset($_GET['course_id']) ? (int)$_GET['course_id'] : 0;
+$class_id = isset($_GET['class_id']) ? (int)$_GET['class_id'] : 0;
+$search_q = isset($_GET['q']) ? trim((string)$_GET['q']) : '';
+if (strlen($search_q) > 100) {
+    $search_q = substr($search_q, 0, 100);
 }
 
-$count_all = (int)$conn->query("
-    SELECT COUNT(s.id) AS n
+// Daftar course milik guru
+$courses = [];
+$cq = $conn->query("SELECT id, title FROM courses WHERE teacher_id = $teacher_id ORDER BY title ASC");
+if ($cq) {
+    while ($row = $cq->fetch_assoc()) {
+        $courses[] = $row;
+    }
+}
+
+// Validasi course
+$course_ok = false;
+if ($course_id > 0) {
+    foreach ($courses as $c) {
+        if ((int)$c['id'] === $course_id) {
+            $course_ok = true;
+            break;
+        }
+    }
+    if (!$course_ok) {
+        $course_id = 0;
+        $class_id = 0;
+    }
+}
+
+// Kelas: jika course dipilih → rombel terhubung; jika tidak → semua rombel guru
+$classes = [];
+if ($course_id > 0) {
+    $clq = $conn->query("
+        SELECT cl.id, cl.name
+        FROM course_classes cc
+        JOIN classes cl ON cl.id = cc.class_id
+        WHERE cc.course_id = $course_id
+          AND cl.teacher_id = $teacher_id
+        ORDER BY cl.name ASC
+    ");
+} else {
+    $clq = $conn->query("SELECT id, name FROM classes WHERE teacher_id = $teacher_id ORDER BY name ASC");
+}
+if ($clq) {
+    while ($row = $clq->fetch_assoc()) {
+        $classes[] = $row;
+    }
+}
+
+$class_ok = false;
+if ($class_id > 0) {
+    foreach ($classes as $cl) {
+        if ((int)$cl['id'] === $class_id) {
+            $class_ok = true;
+            break;
+        }
+    }
+    if (!$class_ok) {
+        $class_id = 0;
+    }
+}
+
+function grading_qs(array $overrides = []): string
+{
+    $params = [
+        'status' => $overrides['status'] ?? ($_GET['status'] ?? 'all'),
+        'course_id' => array_key_exists('course_id', $overrides) ? (int)$overrides['course_id'] : (isset($_GET['course_id']) ? (int)$_GET['course_id'] : 0),
+        'class_id' => array_key_exists('class_id', $overrides) ? (int)$overrides['class_id'] : (isset($_GET['class_id']) ? (int)$_GET['class_id'] : 0),
+        'q' => array_key_exists('q', $overrides) ? trim((string)$overrides['q']) : (isset($_GET['q']) ? trim((string)$_GET['q']) : ''),
+    ];
+    if (!in_array($params['status'], ['all', 'ungraded', 'graded'], true)) {
+        $params['status'] = 'all';
+    }
+    if ($params['status'] === 'all') {
+        unset($params['status']);
+    }
+    if ((int)$params['course_id'] <= 0) {
+        unset($params['course_id']);
+    }
+    if ((int)$params['class_id'] <= 0) {
+        unset($params['class_id']);
+    }
+    if ($params['q'] === '') {
+        unset($params['q']);
+    }
+    return $params ? ('?' . http_build_query($params)) : '';
+}
+
+// Base filter (course/kelas/nama) untuk query & hitungan
+$filter_sql = "WHERE c.teacher_id = $teacher_id";
+$join_class = '';
+$join_user = " JOIN users u ON s.student_id = u.id ";
+if ($course_id > 0) {
+    $filter_sql .= " AND c.id = $course_id";
+}
+if ($class_id > 0) {
+    $join_class = " JOIN class_students cs ON cs.student_id = s.student_id AND cs.class_id = $class_id ";
+}
+if ($search_q !== '') {
+    $safe_q = $conn->real_escape_string($search_q);
+    $filter_sql .= " AND (u.name LIKE '%$safe_q%' OR u.username LIKE '%$safe_q%')";
+}
+
+$status_sql = '';
+if ($status === 'ungraded') {
+    $status_sql = " AND s.grade IS NULL";
+} elseif ($status === 'graded') {
+    $status_sql = " AND s.grade IS NOT NULL";
+}
+
+$count_base = "
     FROM submissions s
     JOIN assignments a ON s.assignment_id = a.id
     JOIN courses c ON a.course_id = c.id
-    WHERE c.teacher_id = $teacher_id
-")->fetch_assoc()['n'];
-$count_ungraded = (int)$conn->query("
-    SELECT COUNT(s.id) AS n
-    FROM submissions s
-    JOIN assignments a ON s.assignment_id = a.id
-    JOIN courses c ON a.course_id = c.id
-    WHERE c.teacher_id = $teacher_id AND s.grade IS NULL
-")->fetch_assoc()['n'];
-$count_graded = (int)$conn->query("
-    SELECT COUNT(s.id) AS n
-    FROM submissions s
-    JOIN assignments a ON s.assignment_id = a.id
-    JOIN courses c ON a.course_id = c.id
-    WHERE c.teacher_id = $teacher_id AND s.grade IS NOT NULL
-")->fetch_assoc()['n'];
+    $join_user
+    $join_class
+    $filter_sql
+";
+
+$count_all = (int)$conn->query("SELECT COUNT(s.id) AS n $count_base")->fetch_assoc()['n'];
+$count_ungraded = (int)$conn->query("SELECT COUNT(s.id) AS n $count_base AND s.grade IS NULL")->fetch_assoc()['n'];
+$count_graded = (int)$conn->query("SELECT COUNT(s.id) AS n $count_base AND s.grade IS NOT NULL")->fetch_assoc()['n'];
 
 $query = "SELECT s.id as sub_id, s.file_path, s.grade, s.created_at as submitted_at, s.feedback,
                  u.name as st_name, a.title as assign_title, c.title as course_title
           FROM submissions s
           JOIN assignments a ON s.assignment_id = a.id
           JOIN courses c ON a.course_id = c.id
-          JOIN users u ON s.student_id = u.id
-          $where
+          $join_user
+          $join_class
+          $filter_sql
+          $status_sql
           ORDER BY s.created_at DESC";
 $subs = $conn->query($query);
+
+$has_extra_filter = ($course_id > 0 || $class_id > 0 || $search_q !== '');
 
 $page_title = 'Portal Nilai';
 require_once '../components/header.php';
@@ -60,11 +161,56 @@ require_once '../components/header.php';
     </div>
 
     <div class="glass-card grading-toolbar">
-        <div class="grading-filter-label"><i class="uil uil-filter"></i> Filter status</div>
+        <form method="GET" action="teacher_grading.php" class="grading-filter-form" id="gradingFilterForm">
+            <input type="hidden" name="status" value="<?php echo htmlspecialchars($status); ?>">
+            <div class="grading-select-grid">
+                <div class="form-group" style="margin:0;">
+                    <label class="form-label" for="filterCourse"><i class="uil uil-books"></i> Course</label>
+                    <select id="filterCourse" name="course_id" class="form-control">
+                        <option value="0">Semua course</option>
+                        <?php foreach ($courses as $c): ?>
+                            <option value="<?php echo (int)$c['id']; ?>" <?php echo $course_id === (int)$c['id'] ? 'selected' : ''; ?>>
+                                <?php echo htmlspecialchars($c['title']); ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+                <div class="form-group" style="margin:0;">
+                    <label class="form-label" for="filterClass"><i class="uil uil-building"></i> Kelas / Rombel</label>
+                    <select id="filterClass" name="class_id" class="form-control">
+                        <option value="0">Semua kelas</option>
+                        <?php foreach ($classes as $cl): ?>
+                            <option value="<?php echo (int)$cl['id']; ?>" <?php echo $class_id === (int)$cl['id'] ? 'selected' : ''; ?>>
+                                <?php echo htmlspecialchars($cl['name']); ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                    <?php if ($course_id > 0 && empty($classes)): ?>
+                        <small class="text-muted" style="display:block; margin-top:0.35rem;">Belum ada rombel terhubung ke course ini.</small>
+                    <?php endif; ?>
+                </div>
+                <div class="form-group" style="margin:0;">
+                    <label class="form-label" for="filterSearch"><i class="uil uil-search"></i> Cari siswa</label>
+                    <div class="grading-search-row">
+                        <input type="text" id="filterSearch" name="q" class="form-control" value="<?php echo htmlspecialchars($search_q); ?>" placeholder="Nama atau NISN..." autocomplete="off">
+                        <button type="submit" class="btn btn-primary btn-sm" title="Cari"><i class="uil uil-search"></i></button>
+                    </div>
+                </div>
+                <div class="grading-filter-actions">
+                    <?php if ($has_extra_filter): ?>
+                        <a href="teacher_grading.php<?php echo grading_qs(['course_id' => 0, 'class_id' => 0, 'q' => '', 'status' => $status]); ?>" class="btn btn-secondary btn-sm">
+                            <i class="uil uil-times"></i> Reset filter
+                        </a>
+                    <?php endif; ?>
+                </div>
+            </div>
+        </form>
+
+        <div class="grading-filter-label" style="margin-top:1rem;"><i class="uil uil-filter"></i> Filter status</div>
         <div class="grading-filter-chips">
-            <a href="teacher_grading.php?status=all" class="filter-chip <?php echo $status === 'all' ? 'is-active' : ''; ?>">Semua <span class="chip-count"><?php echo $count_all; ?></span></a>
-            <a href="teacher_grading.php?status=ungraded" class="filter-chip <?php echo $status === 'ungraded' ? 'is-active' : ''; ?>">Belum dinilai <span class="chip-count"><?php echo $count_ungraded; ?></span></a>
-            <a href="teacher_grading.php?status=graded" class="filter-chip <?php echo $status === 'graded' ? 'is-active' : ''; ?>">Sudah dinilai <span class="chip-count"><?php echo $count_graded; ?></span></a>
+            <a href="teacher_grading.php<?php echo grading_qs(['status' => 'all', 'course_id' => $course_id, 'class_id' => $class_id, 'q' => $search_q]); ?>" class="filter-chip <?php echo $status === 'all' ? 'is-active' : ''; ?>">Semua <span class="chip-count"><?php echo $count_all; ?></span></a>
+            <a href="teacher_grading.php<?php echo grading_qs(['status' => 'ungraded', 'course_id' => $course_id, 'class_id' => $class_id, 'q' => $search_q]); ?>" class="filter-chip <?php echo $status === 'ungraded' ? 'is-active' : ''; ?>">Belum dinilai <span class="chip-count"><?php echo $count_ungraded; ?></span></a>
+            <a href="teacher_grading.php<?php echo grading_qs(['status' => 'graded', 'course_id' => $course_id, 'class_id' => $class_id, 'q' => $search_q]); ?>" class="filter-chip <?php echo $status === 'graded' ? 'is-active' : ''; ?>">Sudah dinilai <span class="chip-count"><?php echo $count_graded; ?></span></a>
         </div>
     </div>
 
@@ -155,7 +301,11 @@ require_once '../components/header.php';
                 ?>
             </h3>
             <p style="color:var(--text-muted);">
-                <?php echo $status === 'all' ? 'Belum ada siswa yang mengumpulkan tugas.' : 'Coba ubah filter status di atas.'; ?>
+                <?php
+                if ($has_extra_filter) echo 'Coba ubah filter course, kelas, pencarian, atau status.';
+                elseif ($status === 'all') echo 'Belum ada siswa yang mengumpulkan tugas.';
+                else echo 'Coba ubah filter status di atas.';
+                ?>
             </p>
         </div>
     <?php endif; ?>
@@ -170,6 +320,9 @@ require_once '../components/header.php';
         <form action="../actions/grade_submission.php" method="POST" id="formGradeSubmission">
             <input type="hidden" name="sub_id" id="gradeSubId" value="">
             <input type="hidden" name="return_status" value="<?php echo htmlspecialchars($status); ?>">
+            <input type="hidden" name="return_course_id" value="<?php echo (int)$course_id; ?>">
+            <input type="hidden" name="return_class_id" value="<?php echo (int)$class_id; ?>">
+            <input type="hidden" name="return_q" value="<?php echo htmlspecialchars($search_q); ?>">
 
             <div class="modal-note" id="gradeMetaBox">
                 <div><strong id="gradeStudentName">-</strong></div>
@@ -195,6 +348,24 @@ require_once '../components/header.php';
 .grading-toolbar {
     padding: 1.1rem 1.25rem;
     margin-bottom: 1.25rem;
+}
+.grading-select-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1.2fr auto;
+    gap: 0.85rem 1rem;
+    align-items: end;
+}
+.grading-search-row {
+    display: flex;
+    gap: 0.4rem;
+    align-items: center;
+}
+.grading-search-row .form-control { flex: 1; min-width: 0; }
+.grading-filter-actions {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+    flex-wrap: wrap;
 }
 .grading-filter-label {
     font-size: 0.85rem;
@@ -245,9 +416,32 @@ require_once '../components/header.php';
     font-weight: 700;
     font-size: 0.8rem;
 }
+@media (max-width: 768px) {
+    .grading-select-grid { grid-template-columns: 1fr; }
+}
 </style>
 
 <script>
+(function () {
+    var form = document.getElementById('gradingFilterForm');
+    var course = document.getElementById('filterCourse');
+    var kelas = document.getElementById('filterClass');
+    if (!form) return;
+
+    if (course) {
+        course.addEventListener('change', function () {
+            // Ganti course → reset kelas agar daftar rombel sesuai course
+            if (kelas) kelas.value = '0';
+            form.submit();
+        });
+    }
+    if (kelas) {
+        kelas.addEventListener('change', function () {
+            form.submit();
+        });
+    }
+})();
+
 document.querySelectorAll('.btn-open-grade').forEach(function (btn) {
     btn.addEventListener('click', function () {
         var mode = this.getAttribute('data-mode') || 'new';

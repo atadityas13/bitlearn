@@ -6,7 +6,27 @@ $return_status = isset($_POST['return_status']) ? (string)$_POST['return_status'
 if (!in_array($return_status, ['all', 'ungraded', 'graded'], true)) {
     $return_status = 'all';
 }
-$redirect = '../pages/teacher_grading.php' . ($return_status !== 'all' ? ('?status=' . urlencode($return_status)) : '');
+$return_course_id = isset($_POST['return_course_id']) ? (int)$_POST['return_course_id'] : 0;
+$return_class_id = isset($_POST['return_class_id']) ? (int)$_POST['return_class_id'] : 0;
+$return_q = isset($_POST['return_q']) ? trim((string)$_POST['return_q']) : '';
+if (strlen($return_q) > 100) {
+    $return_q = substr($return_q, 0, 100);
+}
+
+$params = [];
+if ($return_status !== 'all') {
+    $params['status'] = $return_status;
+}
+if ($return_course_id > 0) {
+    $params['course_id'] = $return_course_id;
+}
+if ($return_class_id > 0) {
+    $params['class_id'] = $return_class_id;
+}
+if ($return_q !== '') {
+    $params['q'] = $return_q;
+}
+$redirect = '../pages/teacher_grading.php' . ($params ? ('?' . http_build_query($params)) : '');
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $sub_id = (int)$_POST['sub_id'];
