@@ -1,22 +1,24 @@
-# BitLearn Student API
+# BitLearn Student API (Produksi)
 
-JSON REST API untuk aplikasi Android siswa. Web guru tetap memakai session PHP seperti biasa.
+**Base URL:** https://bitlearn.mtsn11majalengka.sch.id/api/
 
-## Base URL
+Portal web: https://bitlearn.mtsn11majalengka.sch.id/
 
-```
-http://{host}/{path-ke-bitlearn}/api
-```
+## Deploy ke hosting
 
-Contoh XAMPP lokal:
-```
-http://10.0.2.2/bitlearn/api
-```
-(`10.0.2.2` = localhost dari emulator Android)
+1. Upload seluruh folder project (termasuk folder `api/`) ke document root subdomain BitLearn.
+2. Pastikan `core/config.php` berisi kredensial DB hosting (bukan XAMPP).
+3. Jalankan SQL di `api/migrate_tokens.sql` via phpMyAdmin **atau** biarkan auto-create saat API pertama dipanggil.
+4. Pastikan `mod_rewrite` aktif (umumnya sudah di cPanel).
+5. Hapus / ganti nama `install.php` jika masih ada di produksi.
+6. Uji di browser:
+   - https://bitlearn.mtsn11majalengka.sch.id/api/
+   - Harus mengembalikan JSON `success: true`
+
+Jika rewrite gagal, pakai fallback:
+`https://bitlearn.mtsn11majalengka.sch.id/api/index.php?r=/auth/login`
 
 ## Auth
-
-Login mengembalikan Bearer token. Kirim di setiap request terproteksi:
 
 ```
 Authorization: Bearer {token}
@@ -40,30 +42,19 @@ Authorization: Bearer {token}
 | GET | `/assignments/{id}` | ✓ | Detail tugas |
 | POST | `/assignments/{id}/submit` | ✓ | Upload file (`assignment_file`) |
 | GET | `/profile` | ✓ | Profil |
-| PUT/POST | `/profile` | ✓ | Update profil (+ opsional `profile_pic`) |
+| PUT/POST | `/profile` | ✓ | Update profil |
 
-### Contoh login
+### Login
 
 ```http
-POST /api/auth/login
+POST https://bitlearn.mtsn11majalengka.sch.id/api/auth/login
 Content-Type: application/json
 
 {"username":"NISN123","password":"rahasia","device_name":"android"}
 ```
 
-Alternatif tanpa rewrite Apache: `POST /api/index.php?r=/auth/login`
-
-## Response format
+## Response
 
 ```json
 {"success": true, "message": "OK", "data": {}}
 ```
-
-Error:
-```json
-{"success": false, "message": "..."}
-```
-
-## Migrasi DB
-
-Tabel `api_tokens` otomatis dibuat saat API pertama kali dipanggil. Juga ada di `db_setup.sql` untuk instalasi baru.

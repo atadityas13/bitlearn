@@ -1,0 +1,21 @@
+# BitLearn — keamanan dasar hosting produksi
+# Domain: https://bitlearn.mtsn11majalengka.sch.id/
+
+Options -Indexes
+
+# Blok akses langsung ke file sensitif
+<FilesMatch "(?i)^(config\.php|\.env|composer\.(json|lock)|db_setup\.sql)$">
+    Require all denied
+</FilesMatch>
+
+# Proteksi folder core (kecuali dibutuhkan via include PHP)
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteRule ^core/ - [F,L]
+    RewriteRule ^actions/.*\.php$ - [L]
+</IfModule>
+
+# Pastikan uploads tidak mengeksekusi PHP
+<IfModule mod_rewrite.c>
+    RewriteRule ^uploads/.*\.(?i:php|phtml|phar|php\d+)$ - [F,L]
+</IfModule>

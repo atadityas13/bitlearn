@@ -1,9 +1,13 @@
 RewriteEngine On
 
+# Shared hosting / CGI: teruskan header Authorization ke PHP
+RewriteCond %{HTTP:Authorization} .
+RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
+
 # Allow direct access to existing files
 RewriteCond %{REQUEST_FILENAME} -f [OR]
 RewriteCond %{REQUEST_FILENAME} -d
 RewriteRule ^ - [L]
 
-# Route everything else to index.php with PATH_INFO
+# Route everything else to index.php
 RewriteRule ^(.*)$ index.php/$1 [QSA,L]

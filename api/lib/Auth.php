@@ -37,7 +37,20 @@ class ApiAuth
 
     public static function bearerToken(): ?string
     {
-        $header = $_SERVER['HTTP_AUTHORIZATION'] ?? $_SERVER['REDIRECT_HTTP_AUTHORIZATION'] ?? '';
+        $header = $_SERVER['HTTP_AUTHORIZATION']
+            ?? $_SERVER['REDIRECT_HTTP_AUTHORIZATION']
+            ?? '';
+
+        // Beberapa shared hosting menaruh auth di getallheaders()
+        if ($header === '' && function_exists('getallheaders')) {
+            foreach (getallheaders() as $key => $value) {
+                if (strcasecmp($key, 'Authorization') === 0) {
+                    $header = $value;
+                    break;
+                }
+            }
+        }
+
         if (preg_match('/Bearer\s+(\S+)/i', $header, $m)) {
             return $m[1];
         }
