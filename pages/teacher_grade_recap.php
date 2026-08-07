@@ -13,6 +13,26 @@ CourseStudents::ensureExclusionsTable($conn);
 $course_id = isset($_GET['course_id']) ? (int)$_GET['course_id'] : 0;
 $class_id = isset($_GET['class_id']) ? (int)$_GET['class_id'] : 0;
 
+/**
+ * Susun teks keterangan: judul penilaian + konteks modul / penugasan.
+ */
+function recap_legend_text(string $title, string $context, string $kind = 'modul'): string
+{
+    $title = trim($title);
+    $context = trim($context);
+    if ($context === '') {
+        return $title;
+    }
+    if ($kind === 'modul') {
+        // Hindari duplikasi jika judul sudah memuat nama modul
+        if ($title !== '' && stripos($title, $context) !== false) {
+            return $title;
+        }
+        return $title . ' — Modul: ' . $context;
+    }
+    return $title . ' — ' . $context;
+}
+
 // Daftar course milik guru
 $courses = [];
 $cq = $conn->query("SELECT id, title FROM courses WHERE teacher_id = $teacher_id ORDER BY title ASC");
@@ -69,15 +89,16 @@ if ($course_id > 0 && $class_id > 0) {
     }
 }
 
-$quiz_columns = [];
+$grade_columns = []; // kolom nilai gabungan (kuis + penugasan)
 $students = [];
-$scores = []; // [student_id][lesson_id] => score
+$scores = []; // [student_id][col_key] => score
 $ready = ($course_id > 0 && $class_id > 0 && $selected_course && $selected_class);
 
 if ($ready) {
-    // Kolom nilai = pelajaran kuis (Pretest/Posttest) di course, urut modul → lesson
+    // 1) Kuis / Pretest / Posttest / Ulangan Harian (lesson content_type=quiz) per modul
     $qz = $conn->query("
-        SELECT l.id, l.title, m.title AS module_title, m.order_num AS module_order, l.order_num AS lesson_order
+        SELECT l.id, l.title, m.id AS module_id, m.title AS module_title,
+               m.order_num AS module_order, l.order_num AS lesson_order
         FROM lessons l
         JOIN modules m ON l.module_id = m.id
         WHERE m.course_id = $course_id
@@ -85,14 +106,49 @@ if ($ready) {
         ORDER BY m.order_num ASC, m.id ASC, l.order_num ASC, l.id ASC
     ");
     if ($qz) {
-        $n = 1;
         while ($row = $qz->fetch_assoc()) {
-            $row['label'] = 'Nilai ' . $n;
-            $row['legend'] = trim((string)$row['title']);
-            $quiz_columns[] = $row;
-            $n++;
+            $lid = (int)$row['id'];
+            $grade_columns[] = [
+                'key' => 'q_' . $lid,
+                'source' => 'quiz',
+                'id' => $lid,
+                'title' => trim((string)$row['title']),
+                'module_id' => (int)$row['module_id'],
+                'module_title' => trim((string)$row['module_title']),
+                'legend' => recap_legend_text((string)$row['title'], (string)$row['module_title'], 'modul'),
+                'group' => trim((string)$row['module_title']) !== '' ? ('Modul: ' . trim((string)$row['module_title'])) : 'Kuis',
+            ];
         }
     }
+
+    // 2) Penugasan (unggah file) di course
+    $asq = $conn->query("
+        SELECT id, title
+        FROM assignments
+        WHERE course_id = $course_id
+        ORDER BY id ASC
+    ");
+    if ($asq) {
+        while ($row = $asq->fetch_assoc()) {
+            $aid = (int)$row['id'];
+            $grade_columns[] = [
+                'key' => 'a_' . $aid,
+                'source' => 'assignment',
+                'id' => $aid,
+                'title' => trim((string)$row['title']),
+                'module_id' => 0,
+                'module_title' => '',
+                'legend' => recap_legend_text((string)$row['title'], 'Penugasan', 'penugasan'),
+                'group' => 'Penugasan',
+            ];
+        }
+    }
+
+    // Nomor kolom Nilai 1, Nilai 2, ...
+    foreach ($grade_columns as $i => &$col) {
+        $col['label'] = 'Nilai ' . ($i + 1);
+    }
+    unset($col);
 
     // Siswa di rombel terpilih (kecuali yang di-exclude dari course)
     $has_excl = CourseStudents::hasExclusionsTable($conn);
@@ -116,30 +172,70 @@ if ($ready) {
         }
     }
 
-    // Ambil skor (jika ada beberapa attempt, pakai yang terakhir)
-    if (!empty($quiz_columns) && !empty($students)) {
-        $lesson_ids = array_map(static function ($col) {
-            return (int)$col['id'];
-        }, $quiz_columns);
-        $lesson_in = implode(',', $lesson_ids);
-        $score_q = $conn->query("
-            SELECT qa.student_id, qa.lesson_id, qa.score
-            FROM quiz_attempts qa
-            INNER JOIN (
-                SELECT student_id, lesson_id, MAX(id) AS mid
-                FROM quiz_attempts
-                WHERE lesson_id IN ($lesson_in)
-                GROUP BY student_id, lesson_id
-            ) latest ON qa.id = latest.mid
-        ");
-        if ($score_q) {
-            while ($row = $score_q->fetch_assoc()) {
-                $sid = (int)$row['student_id'];
-                $lid = (int)$row['lesson_id'];
-                $scores[$sid][$lid] = (int)$row['score'];
+    if (!empty($grade_columns) && !empty($students)) {
+        $quiz_ids = [];
+        $assign_ids = [];
+        foreach ($grade_columns as $col) {
+            if ($col['source'] === 'quiz') {
+                $quiz_ids[] = (int)$col['id'];
+            } else {
+                $assign_ids[] = (int)$col['id'];
+            }
+        }
+
+        // Skor kuis (ambil attempt terakhir jika ada lebih dari satu)
+        if (!empty($quiz_ids)) {
+            $lesson_in = implode(',', $quiz_ids);
+            $score_q = $conn->query("
+                SELECT qa.student_id, qa.lesson_id, qa.score
+                FROM quiz_attempts qa
+                INNER JOIN (
+                    SELECT student_id, lesson_id, MAX(id) AS mid
+                    FROM quiz_attempts
+                    WHERE lesson_id IN ($lesson_in)
+                    GROUP BY student_id, lesson_id
+                ) latest ON qa.id = latest.mid
+            ");
+            if ($score_q) {
+                while ($row = $score_q->fetch_assoc()) {
+                    $sid = (int)$row['student_id'];
+                    $scores[$sid]['q_' . (int)$row['lesson_id']] = (int)$row['score'];
+                }
+            }
+        }
+
+        // Nilai penugasan (submisi terakhir yang punya grade)
+        if (!empty($assign_ids)) {
+            $assign_in = implode(',', $assign_ids);
+            $sub_q = $conn->query("
+                SELECT s.student_id, s.assignment_id, s.grade
+                FROM submissions s
+                INNER JOIN (
+                    SELECT student_id, assignment_id, MAX(id) AS mid
+                    FROM submissions
+                    WHERE assignment_id IN ($assign_in)
+                    GROUP BY student_id, assignment_id
+                ) latest ON s.id = latest.mid
+                WHERE s.grade IS NOT NULL
+            ");
+            if ($sub_q) {
+                while ($row = $sub_q->fetch_assoc()) {
+                    $sid = (int)$row['student_id'];
+                    $scores[$sid]['a_' . (int)$row['assignment_id']] = (int)$row['grade'];
+                }
             }
         }
     }
+}
+
+// Kelompokkan keterangan per modul / penugasan untuk tampilan legend
+$legend_groups = [];
+foreach ($grade_columns as $col) {
+    $g = $col['group'];
+    if (!isset($legend_groups[$g])) {
+        $legend_groups[$g] = [];
+    }
+    $legend_groups[$g][] = $col;
 }
 
 $page_title = 'Rekap Nilai';
@@ -150,7 +246,7 @@ require_once '../components/header.php';
     <div class="page-header">
         <div>
             <h2><i class="uil uil-chart-line"></i> Rekap Nilai</h2>
-            <p class="text-muted" style="margin:0;">Ringkasan nilai Pretest/Posttest siswa per course dan rombel.</p>
+            <p class="text-muted" style="margin:0;">Ringkasan nilai Pretest/Posttest/Ulangan dan Penugasan per course &amp; rombel.</p>
         </div>
     </div>
 
@@ -199,15 +295,15 @@ require_once '../components/header.php';
             <i class="uil uil-chart-line" style="font-size:3.5rem; color:var(--text-muted);"></i>
             <h3 style="margin-top:1rem;">Pilih course dan kelas</h3>
             <p class="text-muted" style="margin:0; max-width:420px; margin-inline:auto;">
-                Data nilai Pretest/Posttest akan ditampilkan setelah kedua filter dipilih.
+                Data nilai akan ditampilkan setelah course dan kelas dipilih.
             </p>
         </div>
-    <?php elseif (empty($quiz_columns)): ?>
+    <?php elseif (empty($grade_columns)): ?>
         <div class="glass-card" style="text-align:center; padding:3.5rem 1.5rem;">
             <i class="uil uil-clipboard-notes" style="font-size:3.5rem; color:var(--text-muted);"></i>
-            <h3 style="margin-top:1rem;">Belum ada Pretest/Posttest</h3>
+            <h3 style="margin-top:1rem;">Belum ada penilaian</h3>
             <p class="text-muted" style="margin:0;">
-                Course <b><?php echo htmlspecialchars($selected_course['title']); ?></b> belum memiliki pelajaran bertipe kuis.
+                Course <b><?php echo htmlspecialchars($selected_course['title']); ?></b> belum memiliki kuis (Pretest/Posttest/Ulangan) maupun penugasan.
             </p>
         </div>
     <?php elseif (empty($students)): ?>
@@ -224,17 +320,17 @@ require_once '../components/header.php';
                 <b><?php echo htmlspecialchars($selected_course['title']); ?></b>
                 <span class="text-muted"> · </span>
                 <span><?php echo htmlspecialchars($selected_class['name']); ?></span>
-                <span class="text-muted"> · <?php echo count($students); ?> siswa · <?php echo count($quiz_columns); ?> kolom nilai</span>
+                <span class="text-muted"> · <?php echo count($students); ?> siswa · <?php echo count($grade_columns); ?> kolom nilai</span>
             </div>
         </div>
 
         <div class="table-responsive glass-card" style="padding:1rem;">
-            <table class="table recap-table" style="min-width:<?php echo 280 + (count($quiz_columns) * 88); ?>px; margin-top:0;">
+            <table class="table recap-table" style="min-width:<?php echo 280 + (count($grade_columns) * 88); ?>px; margin-top:0;">
                 <thead>
                     <tr>
                         <th style="width:52px; text-align:center;">No</th>
                         <th style="min-width:180px;">Nama Siswa</th>
-                        <?php foreach ($quiz_columns as $col): ?>
+                        <?php foreach ($grade_columns as $col): ?>
                             <th style="text-align:center; white-space:nowrap;" title="<?php echo htmlspecialchars($col['legend']); ?>">
                                 <?php echo htmlspecialchars($col['label']); ?>
                             </th>
@@ -253,14 +349,11 @@ require_once '../components/header.php';
                                     <div style="font-size:0.78rem; color:var(--text-muted);">NISN: <?php echo htmlspecialchars($st['nisn']); ?></div>
                                 <?php endif; ?>
                             </td>
-                            <?php foreach ($quiz_columns as $col):
-                                $lid = (int)$col['id'];
-                                $has = isset($scores[$sid][$lid]);
-                                $val = $has ? (int)$scores[$sid][$lid] : null;
-                                $color = '';
-                                if ($has) {
-                                    $color = $val >= 75 ? 'var(--secondary)' : 'var(--danger)';
-                                }
+                            <?php foreach ($grade_columns as $col):
+                                $ckey = $col['key'];
+                                $has = isset($scores[$sid][$ckey]);
+                                $val = $has ? (int)$scores[$sid][$ckey] : null;
+                                $color = $has ? ($val >= 75 ? 'var(--secondary)' : 'var(--danger)') : '';
                             ?>
                                 <td style="text-align:center;">
                                     <?php if ($has): ?>
@@ -277,16 +370,27 @@ require_once '../components/header.php';
         </div>
 
         <div class="glass-card recap-legend">
-            <h4 style="margin:0 0 0.75rem; font-size:1rem;"><i class="uil uil-info-circle"></i> Keterangan kolom</h4>
-            <ul class="recap-legend-list">
-                <?php foreach ($quiz_columns as $col): ?>
-                    <li>
-                        <span class="recap-legend-key"><?php echo htmlspecialchars($col['label']); ?></span>
-                        <span class="recap-legend-sep">:</span>
-                        <span class="recap-legend-val"><?php echo htmlspecialchars($col['legend']); ?></span>
-                    </li>
-                <?php endforeach; ?>
-            </ul>
+            <h4 style="margin:0 0 0.85rem; font-size:1rem;"><i class="uil uil-info-circle"></i> Keterangan kolom</h4>
+            <?php foreach ($legend_groups as $group_name => $items): ?>
+                <div class="recap-legend-group">
+                    <div class="recap-legend-group-title"><?php echo htmlspecialchars($group_name); ?></div>
+                    <ul class="recap-legend-list">
+                        <?php foreach ($items as $col): ?>
+                            <li>
+                                <span class="recap-legend-key"><?php echo htmlspecialchars($col['label']); ?></span>
+                                <span class="recap-legend-sep">:</span>
+                                <span class="recap-legend-val">
+                                    <?php
+                                    // Di dalam grup modul, cukup tampilkan judul (Pretest/Posttest/Ulangan)
+                                    // agar tidak berulang; untuk penugasan tetap judul saja.
+                                    echo htmlspecialchars($col['title']);
+                                    ?>
+                                </span>
+                            </li>
+                        <?php endforeach; ?>
+                    </ul>
+                </div>
+            <?php endforeach; ?>
         </div>
     <?php endif; ?>
 </div>
@@ -307,12 +411,21 @@ require_once '../components/header.php';
 }
 .recap-table th, .recap-table td { vertical-align: middle; }
 .recap-legend { padding: 1.15rem 1.25rem; margin-top: 1rem; }
+.recap-legend-group + .recap-legend-group { margin-top: 1rem; padding-top: 0.85rem; border-top: 1px solid var(--border); }
+.recap-legend-group-title {
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    margin-bottom: 0.45rem;
+}
 .recap-legend-list {
     list-style: none;
     margin: 0;
     padding: 0;
     display: grid;
-    gap: 0.45rem;
+    gap: 0.4rem;
 }
 .recap-legend-list li {
     display: flex;
@@ -337,7 +450,6 @@ require_once '../components/header.php';
     if (!course || !form) return;
 
     course.addEventListener('change', function () {
-        // Ganti course → reset kelas, muat ulang opsi kelas
         if (kelas) kelas.value = '';
         form.submit();
     });
