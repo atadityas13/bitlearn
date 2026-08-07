@@ -298,11 +298,22 @@ if (preg_match('#^/lessons/(\d+)$#', $route, $m) && $method === 'GET') {
         'is_completed' => $isCompleted,
         'url_embed' => null,
         'document_url' => null,
+        'viewer_url' => null,
+        'media_kind' => 'text',
+        'file_extension' => null,
     ];
 
     if (!$locked) {
-        $payload['url_embed'] = $lesson['url_embed'] ?? null;
-        $payload['document_url'] = StudentAccess::absoluteUploadUrl($lesson['document_path'] ?? null, $baseUrl);
+        $media = StudentAccess::buildLessonMedia($lesson, $baseUrl);
+        $payload = array_merge($payload, $media);
+    } else {
+        $payload['completion'] = [
+            'mode' => 'none',
+            'required_seconds' => 0,
+            'youtube_id' => null,
+            'pause_aware' => false,
+            'label' => 'Materi terkunci',
+        ];
     }
 
     ApiResponse::success($payload);
@@ -315,7 +326,19 @@ if (preg_match('#^/lessons/(\d+)/complete$#', $route, $m) && $method === 'POST')
     $user = ApiAuth::requireStudent($conn);
     $studentId = (int) $user['id'];
     $lessonId = (int) $m[1];
+    $input = api_input();
 
+    $lesRes = $conn->query("
+        SELECT lessons.*
+        FROM lessons
+        JOIN modules ON lessons.module_id = modules.id
+        WHERE lessons.id = $lessonId AND lessons.is_published = 1
+        LIMIT 1
+    ");
+    if (!$lesRes || $lesRes->num_rows === 0) {
+        ApiResponse::error('Materi tidak ditemukan.', 404);
+    }
+    $lesson = $lesRes->fetch_assoc();
     $courseId = StudentAccess::getCourseIdForLesson($conn, $lessonId);
     if ($courseId === null) {
         ApiResponse::error('Materi tidak ditemukan.', 404);
@@ -325,11 +348,48 @@ if (preg_match('#^/lessons/(\d+)/complete$#', $route, $m) && $method === 'POST')
     }
 
     $check = $conn->query("SELECT id FROM user_progress WHERE student_id = $studentId AND lesson_id = $lessonId");
-    if (!$check || $check->num_rows === 0) {
-        $conn->query("INSERT INTO user_progress (student_id, lesson_id) VALUES ($studentId, $lessonId)");
+    if ($check && $check->num_rows > 0) {
+        ApiResponse::success(['lesson_id' => $lessonId, 'is_completed' => true], 'Materi sudah selesai');
     }
 
-    ApiResponse::success(['lesson_id' => $lessonId, 'is_completed' => true], 'Materi ditandai selesai');
+    $media = StudentAccess::buildLessonMedia($lesson, $baseUrl);
+    $rule = $media['completion'];
+    $mode = $rule['mode'] ?? 'none';
+    $proof = strtolower(trim((string) ($input['proof'] ?? '')));
+    $elapsed = (int) ($input['elapsed_seconds'] ?? 0);
+    $required = (int) ($rule['required_seconds'] ?? 0);
+
+    if ($mode === 'quiz') {
+        ApiResponse::error('Materi kuis diselesaikan dengan mengerjakan kuis.', 422);
+    }
+
+    if ($mode === 'video_ended') {
+        if ($proof !== 'video_ended') {
+            ApiResponse::error('Tonton video sampai selesai sebelum menandai materi.', 422);
+        }
+    } elseif ($mode === 'download') {
+        if ($proof !== 'download') {
+            ApiResponse::error('Buka/unduh berkas lampiran terlebih dahulu.', 422);
+        }
+    } elseif ($mode === 'dwell') {
+        // Toleransi 5% (timer Android pause-aware)
+        $minNeeded = (int) max(0, floor($required * 0.95));
+        if ($elapsed < $minNeeded) {
+            ApiResponse::error(
+                'Waktu belajar belum cukup. Minimal ' . $required . ' detik (tercatat: ' . $elapsed . ' detik).',
+                422
+            );
+        }
+    }
+
+    $conn->query("INSERT INTO user_progress (student_id, lesson_id) VALUES ($studentId, $lessonId)");
+
+    ApiResponse::success([
+        'lesson_id' => $lessonId,
+        'is_completed' => true,
+        'proof' => $proof !== '' ? $proof : $mode,
+        'elapsed_seconds' => $elapsed,
+    ], 'Materi ditandai selesai');
 }
 
 // ---------------------------------------------------------------------------
@@ -542,15 +602,23 @@ if (preg_match('#^/assignments/(\d+)/submit$#', $route, $m) && $method === 'POST
         ApiResponse::error('Anda sudah mengumpulkan tugas ini.', 409);
     }
 
-    if (!isset($_FILES['assignment_file']) || $_FILES['assignment_file']['error'] !== UPLOAD_ERR_OK) {
-        ApiResponse::error('File tugas wajib diunggah.', 422);
+    if (!isset($_FILES['assignment_file'])) {
+        ApiResponse::error('File tugas wajib diunggah (field: assignment_file).', 422);
+    }
+    $file = $_FILES['assignment_file'];
+    if (($file['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) {
+        ApiResponse::error(StudentAccess::uploadErrorMessage((int) $file['error']), 422);
     }
 
-    $allowed = ['pdf', 'doc', 'docx', 'ppt', 'pptx', 'xls', 'xlsx', 'txt', 'zip', 'rar', 'png', 'jpg', 'jpeg'];
-    $filename = $_FILES['assignment_file']['name'];
-    $ext = strtolower(pathinfo($filename, PATHINFO_EXTENSION));
-    if (!in_array($ext, $allowed, true)) {
-        ApiResponse::error('Format file tidak diizinkan.', 422);
+    $allowed = ['pdf', 'doc', 'docx', 'ppt', 'pptx', 'xls', 'xlsx', 'txt', 'zip', 'rar', 'png', 'jpg', 'jpeg', 'webp', 'gif'];
+    $ext = StudentAccess::resolveUploadExtension($file);
+    if ($ext === '' || !in_array($ext, $allowed, true)) {
+        $hint = $file['name'] ?? '';
+        $mime = $file['type'] ?? '';
+        ApiResponse::error(
+            'Format file tidak diizinkan. Gunakan PDF/DOC/PPT/XLS/ZIP/gambar. (nama: ' . $hint . ', tipe: ' . $mime . ')',
+            422
+        );
     }
 
     $newFilename = 'ans_' . time() . '_' . rand(1000, 9999) . '.' . $ext;
@@ -559,8 +627,8 @@ if (preg_match('#^/assignments/(\d+)/submit$#', $route, $m) && $method === 'POST
         mkdir($uploadDir, 0777, true);
     }
 
-    if (!move_uploaded_file($_FILES['assignment_file']['tmp_name'], $uploadDir . $newFilename)) {
-        ApiResponse::error('Gagal menyimpan file di server.', 500);
+    if (!move_uploaded_file($file['tmp_name'], $uploadDir . $newFilename)) {
+        ApiResponse::error('Gagal menyimpan file di server. Periksa permission folder uploads/.', 500);
     }
 
     $docEsc = $conn->real_escape_string($newFilename);

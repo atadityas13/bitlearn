@@ -56,6 +56,291 @@ class StudentAccess
         return rtrim($baseUrl, '/') . '/uploads/' . ltrim($path, '/');
     }
 
+    /** Ambil URL src jika guru menempel kode iframe. */
+    public static function extractEmbedSrc(?string $raw): ?string
+    {
+        if ($raw === null || trim($raw) === '') {
+            return null;
+        }
+        $raw = trim($raw);
+        if (preg_match('/src=["\']([^"\']+)["\']/i', $raw, $m)) {
+            return trim($m[1]);
+        }
+        return $raw;
+    }
+
+    public static function normalizeVideoEmbedUrl(?string $url): ?string
+    {
+        $url = self::extractEmbedSrc($url);
+        if ($url === null) {
+            return null;
+        }
+        if (preg_match('%(?:youtube(?:-nocookie)?\.com/(?:[^/]+/.+/|(?:v|e(?:mbed)?)/|.*[?&]v=)|youtu\.be/)([^"&?/\s]{11})%i', $url, $m)) {
+            return 'https://www.youtube.com/embed/' . $m[1] . '?playsinline=1&rel=0';
+        }
+        if (preg_match('%drive\.google\.com/file/d/([^/]+)%i', $url, $m)) {
+            return 'https://drive.google.com/file/d/' . $m[1] . '/preview';
+        }
+        return $url;
+    }
+
+    public static function normalizeSlideshowUrl(?string $url): ?string
+    {
+        $url = self::extractEmbedSrc($url);
+        if ($url === null) {
+            return null;
+        }
+        if (preg_match('%docs\.google\.com/presentation/d/([^/]+)%i', $url, $m)) {
+            return 'https://docs.google.com/presentation/d/' . $m[1] . '/embed';
+        }
+        return $url;
+    }
+
+    public static function normalizePdfEmbedUrl(?string $url): ?string
+    {
+        $url = self::extractEmbedSrc($url);
+        if ($url === null) {
+            return null;
+        }
+        if (preg_match('%drive\.google\.com/file/d/([^/]+)%i', $url, $m)) {
+            return 'https://drive.google.com/file/d/' . $m[1] . '/preview';
+        }
+        if (preg_match('%docs\.google\.com/document/d/([^/]+)%i', $url, $m)) {
+            return 'https://docs.google.com/document/d/' . $m[1] . '/preview';
+        }
+        return $url;
+    }
+
+    /**
+     * Payload media untuk app: viewer_url siap ditampilkan di WebView/Image.
+     */
+    public static function buildLessonMedia(array $lesson, string $baseUrl): array
+    {
+        $type = strtolower(trim((string) ($lesson['content_type'] ?? '')));
+        $urlEmbed = self::extractEmbedSrc($lesson['url_embed'] ?? null);
+        $docPath = $lesson['document_path'] ?? null;
+        // Fallback lama: beberapa data menyimpan nama file di url_embed
+        if (empty($docPath) && $type === 'document_upload' && !empty($urlEmbed) && !preg_match('#^https?://#i', $urlEmbed)) {
+            $docPath = $urlEmbed;
+            $urlEmbed = null;
+        }
+        $documentUrl = self::absoluteUploadUrl($docPath, $baseUrl);
+        $ext = $docPath ? strtolower(pathinfo($docPath, PATHINFO_EXTENSION)) : '';
+
+        $viewerUrl = null;
+        $mediaKind = 'text';
+
+        switch ($type) {
+            case 'video_embed':
+                $mediaKind = 'video';
+                $viewerUrl = self::normalizeVideoEmbedUrl($urlEmbed);
+                break;
+            case 'slideshow':
+            case 'ppt_slideshow':
+                $mediaKind = 'slideshow';
+                $viewerUrl = self::normalizeSlideshowUrl($urlEmbed);
+                break;
+            case 'pdf_embed':
+                $mediaKind = 'pdf';
+                $viewerUrl = self::normalizePdfEmbedUrl($urlEmbed);
+                break;
+            case 'document_upload':
+                if (in_array($ext, ['png', 'jpg', 'jpeg', 'gif', 'webp', 'bmp'], true)) {
+                    $mediaKind = 'image';
+                    $viewerUrl = $documentUrl;
+                } elseif ($ext === 'pdf') {
+                    $mediaKind = 'pdf';
+                    $viewerUrl = $documentUrl;
+                } else {
+                    $mediaKind = 'document';
+                    $viewerUrl = $documentUrl;
+                }
+                break;
+            case 'quiz':
+                $mediaKind = 'quiz';
+                break;
+            default:
+                if (!empty($urlEmbed)) {
+                    $mediaKind = 'embed';
+                    $viewerUrl = $urlEmbed;
+                } elseif (!empty($documentUrl)) {
+                    $mediaKind = 'document';
+                    $viewerUrl = $documentUrl;
+                }
+                break;
+        }
+
+        return [
+            'url_embed' => $urlEmbed,
+            'document_url' => $documentUrl,
+            'viewer_url' => $viewerUrl,
+            'media_kind' => $mediaKind,
+            'file_extension' => $ext !== '' ? $ext : null,
+            'completion' => self::buildCompletionRule($type, $mediaKind, $ext, $viewerUrl),
+        ];
+    }
+
+    public static function extractYoutubeId(?string $url): ?string
+    {
+        $url = self::extractEmbedSrc($url);
+        if ($url === null) {
+            return null;
+        }
+        if (preg_match('%(?:youtube(?:-nocookie)?\.com/(?:[^/]+/.+/|(?:v|e(?:mbed)?)/|.*[?&]v=)|youtu\.be/)([^"&?/\s]{11})%i', $url, $m)) {
+            return $m[1];
+        }
+        return null;
+    }
+
+    /**
+     * Aturan penyelesaian materi — mirror logic web lesson_viewer.php,
+     * dengan fallback lebih jelas untuk non-YouTube.
+     */
+    public static function buildCompletionRule(string $contentType, string $mediaKind, string $ext, ?string $viewerUrl): array
+    {
+        $type = strtolower(trim($contentType));
+        $kind = strtolower(trim($mediaKind));
+        $ext = strtolower(trim($ext));
+
+        if ($type === 'quiz' || $kind === 'quiz') {
+            return [
+                'mode' => 'quiz',
+                'required_seconds' => 0,
+                'youtube_id' => null,
+                'pause_aware' => false,
+                'label' => 'Selesaikan kuis untuk menandai materi selesai',
+            ];
+        }
+
+        if ($type === 'video_embed' || $kind === 'video') {
+            $yt = self::extractYoutubeId($viewerUrl);
+            if ($yt) {
+                return [
+                    'mode' => 'video_ended',
+                    'required_seconds' => 0,
+                    'youtube_id' => $yt,
+                    'pause_aware' => true,
+                    'label' => 'Tonton video sampai selesai (tidak bisa dilewati)',
+                ];
+            }
+            // Non-YouTube (Drive, dll.): dwell 2 menit, pause-aware (lebih baik dari web)
+            return [
+                'mode' => 'dwell',
+                'required_seconds' => 120,
+                'youtube_id' => null,
+                'pause_aware' => true,
+                'label' => 'Tonton video minimal 2 menit (timer berhenti jika aplikasi tidak aktif)',
+            ];
+        }
+
+        if (in_array($type, ['slideshow', 'ppt_slideshow', 'pdf_embed'], true) || in_array($kind, ['slideshow'], true)) {
+            return [
+                'mode' => 'dwell',
+                'required_seconds' => 300,
+                'youtube_id' => null,
+                'pause_aware' => true,
+                'label' => 'Pelajari materi minimal 5 menit (timer berhenti jika aplikasi tidak aktif)',
+            ];
+        }
+
+        if ($type === 'document_upload' || $kind === 'pdf' || $kind === 'image' || $kind === 'document') {
+            if (in_array($ext, ['png', 'jpg', 'jpeg', 'gif', 'webp', 'bmp'], true) || $kind === 'image') {
+                return [
+                    'mode' => 'dwell',
+                    'required_seconds' => 2,
+                    'youtube_id' => null,
+                    'pause_aware' => true,
+                    'label' => 'Lihat gambar sebentar',
+                ];
+            }
+            if ($ext === 'pdf' || $kind === 'pdf') {
+                return [
+                    'mode' => 'dwell',
+                    'required_seconds' => 30,
+                    'youtube_id' => null,
+                    'pause_aware' => true,
+                    'label' => 'Baca PDF minimal 30 detik (timer berhenti jika aplikasi tidak aktif)',
+                ];
+            }
+            return [
+                'mode' => 'download',
+                'required_seconds' => 0,
+                'youtube_id' => null,
+                'pause_aware' => false,
+                'label' => 'Unduh / buka berkas lampiran untuk membuka tombol selesai',
+            ];
+        }
+
+        if ($kind === 'embed' || !empty($viewerUrl)) {
+            return [
+                'mode' => 'dwell',
+                'required_seconds' => 10,
+                'youtube_id' => null,
+                'pause_aware' => true,
+                'label' => 'Pelajari konten minimal 10 detik',
+            ];
+        }
+
+        return [
+            'mode' => 'none',
+            'required_seconds' => 0,
+            'youtube_id' => null,
+            'pause_aware' => false,
+            'label' => 'Baca deskripsi lalu tandai selesai',
+        ];
+    }
+
+    /** Ekstensi dari nama file atau MIME (Android content URI sering tanpa ekstensi). */
+    public static function resolveUploadExtension(array $file): string
+    {
+        $name = (string) ($file['name'] ?? '');
+        $ext = strtolower(pathinfo($name, PATHINFO_EXTENSION));
+        if ($ext !== '' && preg_match('/^[a-z0-9]{1,8}$/', $ext)) {
+            return $ext;
+        }
+        $mime = strtolower((string) ($file['type'] ?? ''));
+        $map = [
+            'application/pdf' => 'pdf',
+            'application/msword' => 'doc',
+            'application/vnd.openxmlformats-officedocument.wordprocessingml.document' => 'docx',
+            'application/vnd.ms-powerpoint' => 'ppt',
+            'application/vnd.openxmlformats-officedocument.presentationml.presentation' => 'pptx',
+            'application/vnd.ms-excel' => 'xls',
+            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' => 'xlsx',
+            'text/plain' => 'txt',
+            'application/zip' => 'zip',
+            'application/x-rar-compressed' => 'rar',
+            'application/vnd.rar' => 'rar',
+            'image/png' => 'png',
+            'image/jpeg' => 'jpg',
+            'image/jpg' => 'jpg',
+            'image/webp' => 'webp',
+            'image/gif' => 'gif',
+        ];
+        return $map[$mime] ?? '';
+    }
+
+    public static function uploadErrorMessage(int $code): string
+    {
+        switch ($code) {
+            case UPLOAD_ERR_INI_SIZE:
+            case UPLOAD_ERR_FORM_SIZE:
+                return 'Ukuran file terlalu besar untuk server.';
+            case UPLOAD_ERR_PARTIAL:
+                return 'File hanya terunggah sebagian. Coba lagi.';
+            case UPLOAD_ERR_NO_FILE:
+                return 'File tugas wajib diunggah.';
+            case UPLOAD_ERR_NO_TMP_DIR:
+                return 'Folder sementara server tidak tersedia.';
+            case UPLOAD_ERR_CANT_WRITE:
+                return 'Server gagal menulis file.';
+            case UPLOAD_ERR_EXTENSION:
+                return 'Unggahan diblokir ekstensi PHP.';
+            default:
+                return 'File tugas wajib diunggah (kode: ' . $code . ').';
+        }
+    }
+
     public static function getCourseIdForLesson(mysqli $conn, int $lessonId): ?int
     {
         $res = $conn->query("
