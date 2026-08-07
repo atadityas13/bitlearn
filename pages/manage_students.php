@@ -194,7 +194,7 @@ require_once '../components/header.php';
         
         <?php if($classes && $classes->num_rows > 0): ?>
             <form action="../actions/add_student_to_class.php" method="POST">
-                <input type="hidden" name="return_url" value="../pages/manage_students.php">
+                <input type="hidden" name="return_url" value="<?php echo htmlspecialchars(BASE_URL . '/pages/manage_students.php'); ?>">
                 
                 <div class="form-group">
                     <label class="form-label">Tujuan Rombongan Belajar</label>

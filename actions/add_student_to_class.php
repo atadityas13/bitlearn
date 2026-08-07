@@ -1,12 +1,15 @@
 <?php
 require_once '../core/config.php';
-if (!isset($_SESSION['user_id']) || $_SESSION['user_role'] !== 'teacher') { header("Location: ../index.php"); exit; }
+if (!isset($_SESSION['user_id']) || $_SESSION['user_role'] !== 'teacher') {
+    header('Location: ../index.php');
+    exit;
+}
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $class_id = (int)$_POST['class_id'];
+    $class_id = (int) $_POST['class_id'];
     $name = $conn->real_escape_string(trim($_POST['name']));
     $username = $conn->real_escape_string(trim($_POST['username'])); // previously email
-    
+
     // Generate 6 random char password
     $raw_password = substr(str_shuffle('abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'), 0, 6);
     $hashed_password = password_hash($raw_password, PASSWORD_DEFAULT);
@@ -25,12 +28,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $chk_link = $conn->query("SELECT student_id FROM class_students WHERE class_id = $class_id AND student_id = $student_id");
     if ($chk_link->num_rows == 0) {
         $conn->query("INSERT INTO class_students (class_id, student_id) VALUES ($class_id, $student_id)");
-        $_SESSION['success'] = "Siswa berhasil didaftarkan ke Rombel dengan Sandi Acak.";
+        $_SESSION['success'] = 'Siswa berhasil didaftarkan ke Rombel dengan Sandi Acak.';
     } else {
-        $_SESSION['error'] = "Siswa sudah terdaftar di Rombel ini.";
+        $_SESSION['error'] = 'Siswa sudah terdaftar di Rombel ini.';
     }
 }
-$return_url = isset($_POST['return_url']) ? $_POST['return_url'] : "../pages/manage_classes.php";
-header("Location: " . $return_url);
+
+// Hindari ".." di URL redirect — memicu 403 ModSecurity/LiteSpeed pada POST
+$default_return = BASE_URL . '/pages/manage_students.php';
+$return_url = trim((string) ($_POST['return_url'] ?? ''));
+if ($return_url === '' || strpos($return_url, '..') !== false) {
+    $return_url = $default_return;
+} elseif (strpos($return_url, 'http://') !== 0 && strpos($return_url, 'https://') !== 0) {
+    // path relatif aman, contoh: manage_students.php
+    $return_url = BASE_URL . '/pages/' . ltrim($return_url, '/');
+} elseif (strpos($return_url, BASE_URL) !== 0) {
+    $return_url = $default_return;
+}
+
+header('Location: ' . $return_url);
 exit;
-?>
