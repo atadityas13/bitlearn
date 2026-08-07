@@ -4,17 +4,51 @@ class ApiAuth
 {
     public static function ensureTokensTable(mysqli $conn): void
     {
-        $conn->query("
+        static $ready = false;
+        if ($ready) {
+            return;
+        }
+
+        // Tanpa FOREIGN KEY: shared hosting / engine lama sering gagal & di PHP 8.1+ jadi exception
+        $sql = "
             CREATE TABLE IF NOT EXISTS api_tokens (
                 id INT AUTO_INCREMENT PRIMARY KEY,
                 user_id INT NOT NULL,
-                token VARCHAR(64) NOT NULL UNIQUE,
+                token VARCHAR(64) NOT NULL,
                 device_name VARCHAR(100) DEFAULT NULL,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 expires_at DATETIME DEFAULT NULL,
-                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-            )
-        ");
+                UNIQUE KEY uniq_token (token),
+                KEY idx_user_id (user_id)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+        ";
+
+        try {
+            if (!$conn->query($sql)) {
+                throw new RuntimeException($conn->error ?: 'Gagal membuat tabel api_tokens');
+            }
+        } catch (Throwable $e) {
+            // Coba lagi versi minimal
+            $fallback = "
+                CREATE TABLE IF NOT EXISTS api_tokens (
+                    id INT AUTO_INCREMENT PRIMARY KEY,
+                    user_id INT NOT NULL,
+                    token VARCHAR(64) NOT NULL UNIQUE,
+                    device_name VARCHAR(100) DEFAULT NULL,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    expires_at DATETIME DEFAULT NULL
+                )
+            ";
+            try {
+                if (!$conn->query($fallback)) {
+                    throw new RuntimeException($conn->error ?: $e->getMessage());
+                }
+            } catch (Throwable $e2) {
+                throw new RuntimeException('Gagal menyiapkan tabel api_tokens: ' . $e2->getMessage(), 0, $e2);
+            }
+        }
+
+        $ready = true;
     }
 
     public static function createToken(mysqli $conn, int $userId, ?string $deviceName = null): string
@@ -24,7 +58,19 @@ class ApiAuth
         $tokenEsc = $conn->real_escape_string($token);
         $deviceEsc = $deviceName !== null ? "'" . $conn->real_escape_string($deviceName) . "'" : 'NULL';
         $expires = date('Y-m-d H:i:s', strtotime('+90 days'));
-        $conn->query("INSERT INTO api_tokens (user_id, token, device_name, expires_at) VALUES ($userId, '$tokenEsc', $deviceEsc, '$expires')");
+
+        try {
+            $ok = $conn->query(
+                "INSERT INTO api_tokens (user_id, token, device_name, expires_at)
+                 VALUES ($userId, '$tokenEsc', $deviceEsc, '$expires')"
+            );
+            if (!$ok) {
+                throw new RuntimeException($conn->error ?: 'Insert token gagal');
+            }
+        } catch (Throwable $e) {
+            throw new RuntimeException('Gagal membuat token: ' . $e->getMessage(), 0, $e);
+        }
+
         return $token;
     }
 
@@ -32,7 +78,11 @@ class ApiAuth
     {
         self::ensureTokensTable($conn);
         $tokenEsc = $conn->real_escape_string($token);
-        $conn->query("DELETE FROM api_tokens WHERE token = '$tokenEsc'");
+        try {
+            $conn->query("DELETE FROM api_tokens WHERE token = '$tokenEsc'");
+        } catch (Throwable $e) {
+            // ignore revoke errors
+        }
     }
 
     public static function bearerToken(): ?string
@@ -41,7 +91,6 @@ class ApiAuth
             ?? $_SERVER['REDIRECT_HTTP_AUTHORIZATION']
             ?? '';
 
-        // Beberapa shared hosting menaruh auth di getallheaders()
         if ($header === '' && function_exists('getallheaders')) {
             foreach (getallheaders() as $key => $value) {
                 if (strcasecmp($key, 'Authorization') === 0) {
@@ -73,7 +122,11 @@ class ApiAuth
               AND (t.expires_at IS NULL OR t.expires_at > NOW())
             LIMIT 1
         ";
-        $result = $conn->query($sql);
+        try {
+            $result = $conn->query($sql);
+        } catch (Throwable $e) {
+            return null;
+        }
         if ($result && $result->num_rows > 0) {
             return $result->fetch_assoc();
         }
