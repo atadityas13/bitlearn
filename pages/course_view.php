@@ -82,7 +82,7 @@ $tracker_query = $conn->query("
             WHERE m.course_id = $course_id AND p.student_id = u.id
         ) as completed_count,
         (
-            SELECT MAX(p.completed_at) 
+            SELECT MAX(p.id)
             FROM user_progress p 
             JOIN lessons l ON p.lesson_id = l.id 
             JOIN modules m ON l.module_id = m.id 
@@ -97,7 +97,7 @@ $tracker_query = $conn->query("
         WHERE cc.course_id = $course_id
     ) AS enrolled ON u.id = enrolled.student_id
     WHERE u.role = 'student'
-    ORDER BY completed_count DESC, last_completed ASC, u.name ASC
+    ORDER BY completed_count DESC, last_completed DESC, u.name ASC
     LIMIT $limit OFFSET $offset
 ");
 if ($tracker_query) {
