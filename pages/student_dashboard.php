@@ -13,6 +13,9 @@ if (!isset($_SESSION['user_id']) || $r !== 'student') {
 
 $student_id = $_SESSION['user_id'];
 
+require_once '../core/CourseStudents.php';
+CourseStudents::ensureExclusionsTable($conn);
+
 // Get ALL accessible courses (Manual code enrollments + Implicit Rombel assignments)
 $query = "
     SELECT DISTINCT c.* 
@@ -20,7 +23,9 @@ $query = "
     LEFT JOIN enrollments e ON c.id = e.course_id AND e.student_id = $student_id
     LEFT JOIN course_classes cc ON c.id = cc.course_id
     LEFT JOIN class_students cs ON cc.class_id = cs.class_id AND cs.student_id = $student_id
-    WHERE e.id IS NOT NULL OR cs.student_id IS NOT NULL
+    LEFT JOIN course_exclusions cx ON cx.course_id = c.id AND cx.student_id = $student_id
+    WHERE (e.id IS NOT NULL OR cs.student_id IS NOT NULL)
+      AND cx.id IS NULL
 ";
 $enrolled_query = $conn->query($query);
 
@@ -32,8 +37,10 @@ $pending_assignments_query = $conn->query("
     LEFT JOIN enrollments e ON c.id = e.course_id AND e.student_id = $student_id
     LEFT JOIN course_classes cc ON c.id = cc.course_id
     LEFT JOIN class_students cs ON cc.class_id = cs.class_id AND cs.student_id = $student_id
+    LEFT JOIN course_exclusions cx ON cx.course_id = c.id AND cx.student_id = $student_id
     LEFT JOIN submissions s ON a.id = s.assignment_id AND s.student_id = $student_id
     WHERE (e.id IS NOT NULL OR cs.student_id IS NOT NULL)
+      AND cx.id IS NULL
       AND s.id IS NULL
       AND a.due_date > NOW()
       AND a.is_published = 1

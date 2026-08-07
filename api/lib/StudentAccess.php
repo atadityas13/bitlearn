@@ -10,19 +10,34 @@ class StudentAccess
             LEFT JOIN enrollments e ON c.id = e.course_id AND e.student_id = $studentId
             LEFT JOIN course_classes cc ON c.id = cc.course_id
             LEFT JOIN class_students cs ON cc.class_id = cs.class_id AND cs.student_id = $studentId
-            WHERE e.id IS NOT NULL OR cs.student_id IS NOT NULL
+            LEFT JOIN course_exclusions cx ON cx.course_id = c.id AND cx.student_id = $studentId
+            WHERE (e.id IS NOT NULL OR cs.student_id IS NOT NULL)
+              AND cx.id IS NULL
         ";
     }
 
     public static function canAccessCourse(mysqli $conn, int $studentId, int $courseId): bool
     {
+        // Pastikan tabel exclusion ada (aman dipanggil berulang)
+        if (class_exists('CourseStudents')) {
+            CourseStudents::ensureExclusionsTable($conn);
+        } else {
+            @include_once dirname(__DIR__, 2) . '/core/CourseStudents.php';
+            if (class_exists('CourseStudents')) {
+                CourseStudents::ensureExclusionsTable($conn);
+            }
+        }
+
         $sql = "
             SELECT c.id
             FROM courses c
             LEFT JOIN enrollments e ON c.id = e.course_id AND e.student_id = $studentId
             LEFT JOIN course_classes cc ON c.id = cc.course_id
             LEFT JOIN class_students cs ON cc.class_id = cs.class_id AND cs.student_id = $studentId
-            WHERE c.id = $courseId AND (e.id IS NOT NULL OR cs.student_id IS NOT NULL)
+            LEFT JOIN course_exclusions cx ON cx.course_id = c.id AND cx.student_id = $studentId
+            WHERE c.id = $courseId
+              AND (e.id IS NOT NULL OR cs.student_id IS NOT NULL)
+              AND cx.id IS NULL
             LIMIT 1
         ";
         $res = $conn->query($sql);

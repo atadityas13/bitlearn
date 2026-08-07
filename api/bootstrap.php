@@ -38,12 +38,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 }
 
 require_once __DIR__ . '/../core/config.php';
+require_once __DIR__ . '/../core/CourseStudents.php';
 require_once __DIR__ . '/lib/Response.php';
 require_once __DIR__ . '/lib/Auth.php';
 require_once __DIR__ . '/lib/StudentAccess.php';
 
 if (empty($db_valid) || !isset($conn) || $conn->connect_error) {
     ApiResponse::error('Database belum siap. Periksa core/config.php di hosting.', 503);
+}
+
+try {
+    CourseStudents::ensureExclusionsTable($conn);
+} catch (Throwable $e) {
+    // non-fatal: akses tetap jalan tanpa exclusion jika CREATE gagal
 }
 
 // Matikan exception mysqli default agar kita kontrol sendiri (PHP 8.1+)

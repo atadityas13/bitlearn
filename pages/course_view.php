@@ -1,5 +1,6 @@
 <?php
 require_once '../core/config.php';
+require_once '../core/CourseStudents.php';
 if (!isset($_SESSION['user_id']) || $_SESSION['user_role'] !== 'teacher') {
     header("Location: ../index.php");
     exit;
@@ -7,6 +8,7 @@ if (!isset($_SESSION['user_id']) || $_SESSION['user_role'] !== 'teacher') {
 
 $course_id = isset($_GET['id']) ? (int) $_GET['id'] : 0;
 $teacher_id = $_SESSION['user_id'];
+CourseStudents::ensureExclusionsTable($conn);
 
 // Get course data
 $course_result = $conn->query("SELECT * FROM courses WHERE id = $course_id AND teacher_id = $teacher_id");
@@ -45,13 +47,19 @@ $total_lessons_query = $conn->query("
 ");
 $all_lesson_count = $total_lessons_query ? (int)$total_lessons_query->fetch_assoc()['sum'] : 0;
 
-// Analytics: Student Progress Tracker Pagination
+// Analytics: Student Progress Tracker Pagination + Search
 $page_num = isset($_GET['page']) ? (int)$_GET['page'] : 1;
 if($page_num < 1) $page_num = 1;
+$search_q = isset($_GET['q']) ? trim((string)$_GET['q']) : '';
+$search_sql = '';
+if ($search_q !== '') {
+    $safe = $conn->real_escape_string($search_q);
+    $search_sql = " AND (u.name LIKE '%$safe%' OR u.username LIKE '%$safe%') ";
+}
 $limit = 10;
 $offset = ($page_num - 1) * $limit;
 
-// Get Total Students Enrolled
+// Get Total Students Enrolled (exclude yang di-unenroll)
 $total_students_qs = $conn->query("
     SELECT COUNT(DISTINCT u.id) as total
     FROM users u
@@ -62,10 +70,15 @@ $total_students_qs = $conn->query("
         JOIN class_students cs ON cc.class_id = cs.class_id 
         WHERE cc.course_id = $course_id
     ) AS enrolled ON u.id = enrolled.student_id
+    LEFT JOIN course_exclusions cx ON cx.course_id = $course_id AND cx.student_id = u.id
     WHERE u.role = 'student'
+      AND cx.id IS NULL
+      $search_sql
 ");
 $total_students_val = $total_students_qs ? (int)$total_students_qs->fetch_assoc()['total'] : 0;
-$total_pages = ceil($total_students_val / $limit);
+$total_pages = max(1, (int)ceil($total_students_val / $limit));
+if ($page_num > $total_pages) $page_num = $total_pages;
+$offset = ($page_num - 1) * $limit;
 
 $students_progress = [];
 $tracker_query = $conn->query("
@@ -96,7 +109,10 @@ $tracker_query = $conn->query("
         JOIN class_students cs ON cc.class_id = cs.class_id 
         WHERE cc.course_id = $course_id
     ) AS enrolled ON u.id = enrolled.student_id
+    LEFT JOIN course_exclusions cx ON cx.course_id = $course_id AND cx.student_id = u.id
     WHERE u.role = 'student'
+      AND cx.id IS NULL
+      $search_sql
     ORDER BY completed_count DESC, last_completed DESC, u.name ASC
     LIMIT $limit OFFSET $offset
 ");
@@ -312,15 +328,38 @@ require_once '../components/header.php';
         <!-- Sidebar Kanan untuk Class LEADERBOARD -->
         <div>
             <div class="glass-card" style="position:sticky; top:100px; max-height:calc(100vh - 120px); display:flex; flex-direction:column; padding:1.5rem;">
-                <h4 style="margin-bottom:1rem; border-bottom:1px solid rgba(255,255,255,0.1); padding-bottom:1rem;"><i class="uil uil-analytics"></i> Papan Progres Siswa</h4>
+                <h4 style="margin-bottom:0.8rem; border-bottom:1px solid rgba(255,255,255,0.1); padding-bottom:0.8rem;"><i class="uil uil-analytics"></i> Papan Progres Siswa</h4>
+
+                <form method="GET" action="course_view.php" style="margin-bottom:0.9rem;">
+                    <input type="hidden" name="id" value="<?php echo $course_id; ?>">
+                    <div style="display:flex; gap:0.4rem;">
+                        <input type="text" name="q" value="<?php echo htmlspecialchars($search_q); ?>"
+                            placeholder="Cari nama / NISN..."
+                            class="form-control"
+                            style="flex:1; padding:0.45rem 0.7rem; font-size:0.85rem;">
+                        <button type="submit" class="btn btn-secondary btn-sm" title="Cari siswa" style="padding:0.45rem 0.7rem;">
+                            <i class="uil uil-search"></i>
+                        </button>
+                        <?php if ($search_q !== ''): ?>
+                            <a href="course_view.php?id=<?php echo $course_id; ?>" class="btn btn-secondary btn-sm" title="Reset pencarian" style="padding:0.45rem 0.7rem;">
+                                <i class="uil uil-times"></i>
+                            </a>
+                        <?php endif; ?>
+                    </div>
+                    <small style="color:var(--text-muted); font-size:0.75rem;">
+                        <?php echo (int)$total_students_val; ?> siswa
+                        <?php echo $search_q !== '' ? ' ditemukan' : ' terdaftar'; ?>
+                    </small>
+                </form>
                 
                 <div style="overflow-y:auto; flex:1; padding-right:0.5rem;" class="custom-scrollbar">
                     <?php if(empty($students_progress)): ?>
                         <div style="text-align:center; padding:2rem 0; color:var(--text-muted);">
                             <i class="uil uil-users-alt" style="font-size:3rem; margin-bottom:1rem; display:block;"></i>
-                            <p style="font-size:0.9rem;">Belum ada siswa terdaftar pada kelas ini.</p>
+                            <p style="font-size:0.9rem;"><?php echo $search_q !== '' ? 'Tidak ada siswa yang cocok dengan pencarian.' : 'Belum ada siswa terdaftar pada kelas ini.'; ?></p>
                         </div>
                     <?php else: ?>
+                        <?php $qsKeep = $search_q !== '' ? '&q=' . urlencode($search_q) : ''; ?>
                         <div style="display:flex; flex-direction:column; gap:0.8rem;">
                             <?php foreach($students_progress as $sp): 
                                 $completed = (int)$sp['completed_count'];
@@ -335,23 +374,50 @@ require_once '../components/header.php';
                                 $pic_file = $sp['profile_pic'];
                                 $pic_url = !empty($pic_file) ? BASE_URL . '/uploads/' . $pic_file : 'https://ui-avatars.com/api/?name='.urlencode($sp['name']).'&background=312e81&color=fff';
                             ?>
-                            <div style="display:flex; align-items:center; gap:0.8rem; background:rgba(0,0,0,0.2); padding:0.8rem; border-radius:var(--radius-sm); border:1px solid rgba(255,255,255,0.05); transition:background 0.3s;" title="<?php echo $completed; ?> / <?php echo $all_lesson_count; ?> Topik Diselesaikan" onmouseover="this.style.background='rgba(0,0,0,0.4)';" onmouseout="this.style.background='rgba(0,0,0,0.2)';">
+                            <div style="display:flex; align-items:center; gap:0.6rem; background:rgba(0,0,0,0.2); padding:0.7rem; border-radius:var(--radius-sm); border:1px solid rgba(255,255,255,0.05); transition:background 0.3s;" onmouseover="this.style.background='rgba(0,0,0,0.4)';" onmouseout="this.style.background='rgba(0,0,0,0.2)';">
                                 <img src="<?php echo htmlspecialchars($pic_url); ?>" alt="Avatar" style="width:40px; height:40px; border-radius:50%; object-fit:cover; border:2px solid <?php echo $bar_color; ?>;">
                                 
-                                <div style="flex:1; min-width:0;">
-                                    <div style="display:flex; justify-content:space-between; margin-bottom:0.3rem;">
+                                <div style="flex:1; min-width:0;" title="<?php echo $completed; ?> / <?php echo $all_lesson_count; ?> Topik Diselesaikan">
+                                    <div style="display:flex; justify-content:space-between; margin-bottom:0.3rem; gap:0.4rem;">
                                         <div style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
-                                            <strong style="color:var(--text-main); font-size:0.95rem;"><?php echo htmlspecialchars($sp['name']); ?></strong> 
+                                            <strong style="color:var(--text-main); font-size:0.9rem;"><?php echo htmlspecialchars($sp['name']); ?></strong>
+                                            <div style="color:var(--text-muted); font-size:0.72rem;"><?php echo htmlspecialchars($sp['username']); ?></div>
                                         </div>
-                                        <div style="font-size:0.85rem; font-weight:700; color:<?php echo $bar_color; ?>; padding-left:0.5rem;">
+                                        <div style="font-size:0.85rem; font-weight:700; color:<?php echo $bar_color; ?>; padding-left:0.3rem;">
                                             <?php echo $percent; ?>%
                                         </div>
                                     </div>
                                     
-                                    <!-- Sidebar Mini Progress Bar -->
                                     <div style="width:100%; height:6px; background:rgba(255,255,255,0.15); border-radius:10px; overflow:hidden; box-shadow:inset 0 1px 2px rgba(0,0,0,0.3);">
                                         <div style="width:<?php echo $percent; ?>%; height:100%; background:<?php echo $bar_color; ?>; border-radius:10px; transition:width 1s cubic-bezier(0.4, 0, 0.2, 1); box-shadow:0 0 8px <?php echo $bar_color; ?>88;"></div>
                                     </div>
+                                </div>
+
+                                <div style="display:flex; flex-direction:column; gap:0.25rem;">
+                                    <form action="../actions/reset_student_progress.php" method="POST" style="margin:0;"
+                                        data-confirm="Reset semua progres materi, kuis, dan pengumpulan tugas siswa ini pada course ini?">
+                                        <input type="hidden" name="course_id" value="<?php echo $course_id; ?>">
+                                        <input type="hidden" name="student_id" value="<?php echo (int)$sp['id']; ?>">
+                                        <input type="hidden" name="page" value="<?php echo $page_num; ?>">
+                                        <input type="hidden" name="q" value="<?php echo htmlspecialchars($search_q); ?>">
+                                        <button type="submit" class="btn btn-secondary btn-sm"
+                                            title="Reset progres siswa"
+                                            style="padding:0.25rem 0.4rem; line-height:1; border-color:rgba(245,158,11,0.45); color:var(--warning);">
+                                            <i class="uil uil-history"></i>
+                                        </button>
+                                    </form>
+                                    <form action="../actions/unenroll_student.php" method="POST" style="margin:0;"
+                                        data-confirm="Keluarkan siswa ini dari course? Siswa tidak akan bisa mengakses course lagi.">
+                                        <input type="hidden" name="course_id" value="<?php echo $course_id; ?>">
+                                        <input type="hidden" name="student_id" value="<?php echo (int)$sp['id']; ?>">
+                                        <input type="hidden" name="page" value="<?php echo $page_num; ?>">
+                                        <input type="hidden" name="q" value="<?php echo htmlspecialchars($search_q); ?>">
+                                        <button type="submit" class="btn btn-danger btn-sm"
+                                            title="Keluarkan dari course"
+                                            style="padding:0.25rem 0.4rem; line-height:1;">
+                                            <i class="uil uil-user-minus"></i>
+                                        </button>
+                                    </form>
                                 </div>
                             </div>
                             <?php endforeach; ?>
@@ -359,7 +425,7 @@ require_once '../components/header.php';
                             <?php if($total_pages > 1): ?>
                                 <div style="display:flex; justify-content:space-between; align-items:center; margin-top:0.5rem; padding-top:0.5rem; border-top:1px solid rgba(255,255,255,0.05);">
                                     <?php if($page_num > 1): ?>
-                                        <a href="course_view.php?id=<?php echo $course_id; ?>&page=<?php echo $page_num-1; ?>" class="btn btn-secondary btn-sm" style="padding:0.2rem 0.5rem; display:flex; align-items:center;"><i class="uil uil-angle-left"></i> Mundur</a>
+                                        <a href="course_view.php?id=<?php echo $course_id; ?>&page=<?php echo $page_num-1; ?><?php echo $qsKeep; ?>" class="btn btn-secondary btn-sm" style="padding:0.2rem 0.5rem; display:flex; align-items:center;"><i class="uil uil-angle-left"></i> Mundur</a>
                                     <?php else: ?>
                                         <span style="opacity:0.3; padding:0.2rem 0.5rem; display:inline-block;"><i class="uil uil-angle-left"></i> Mundur</span>
                                     <?php endif; ?>
@@ -367,7 +433,7 @@ require_once '../components/header.php';
                                     <span style="color:var(--text-muted); font-size:0.85rem; font-weight:bold;">Hal <?php echo $page_num; ?> / <?php echo $total_pages; ?></span>
                                     
                                     <?php if($page_num < $total_pages): ?>
-                                        <a href="course_view.php?id=<?php echo $course_id; ?>&page=<?php echo $page_num+1; ?>" class="btn btn-secondary btn-sm" style="padding:0.2rem 0.5rem; display:flex; align-items:center;">Maju <i class="uil uil-angle-right"></i></a>
+                                        <a href="course_view.php?id=<?php echo $course_id; ?>&page=<?php echo $page_num+1; ?><?php echo $qsKeep; ?>" class="btn btn-secondary btn-sm" style="padding:0.2rem 0.5rem; display:flex; align-items:center;">Maju <i class="uil uil-angle-right"></i></a>
                                     <?php else: ?>
                                         <span style="opacity:0.3; padding:0.2rem 0.5rem; display:inline-block;">Maju <i class="uil uil-angle-right"></i></span>
                                     <?php endif; ?>
