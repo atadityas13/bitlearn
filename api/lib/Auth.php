@@ -57,7 +57,7 @@ class ApiAuth
         $token = bin2hex(random_bytes(32));
         $tokenEsc = $conn->real_escape_string($token);
         $deviceEsc = $deviceName !== null ? "'" . $conn->real_escape_string($deviceName) . "'" : 'NULL';
-        $expires = date('Y-m-d H:i:s', strtotime('+90 days'));
+        $expires = date('Y-m-d H:i:s', strtotime('+3 days'));
 
         try {
             $ok = $conn->query(
@@ -128,7 +128,18 @@ class ApiAuth
             return null;
         }
         if ($result && $result->num_rows > 0) {
-            return $result->fetch_assoc();
+            $row = $result->fetch_assoc();
+            // Perpanjang masa berlaku token (sliding 3 hari) selama masih dipakai
+            try {
+                $conn->query(
+                    "UPDATE api_tokens
+                     SET expires_at = DATE_ADD(NOW(), INTERVAL 3 DAY)
+                     WHERE token = '$tokenEsc'"
+                );
+            } catch (Throwable $e) {
+                // abaikan jika update gagal; auth tetap jalan
+            }
+            return $row;
         }
         return null;
     }
@@ -145,12 +156,36 @@ class ApiAuth
         return $user;
     }
 
-    public static function publicUser(array $user, string $baseUrl): array
+    public static function publicUser(array $user, string $baseUrl, ?mysqli $conn = null): array
     {
         $pic = null;
         if (!empty($user['profile_pic'])) {
             $pic = rtrim($baseUrl, '/') . '/uploads/' . ltrim($user['profile_pic'], '/');
         }
+
+        $classes = [];
+        if ($conn) {
+            $uid = (int) $user['id'];
+            try {
+                $q = $conn->query("
+                    SELECT c.name
+                    FROM classes c
+                    INNER JOIN class_students cs ON cs.class_id = c.id
+                    WHERE cs.student_id = $uid
+                    ORDER BY c.name ASC
+                ");
+                if ($q) {
+                    while ($row = $q->fetch_assoc()) {
+                        if (!empty($row['name'])) {
+                            $classes[] = $row['name'];
+                        }
+                    }
+                }
+            } catch (Throwable $e) {
+                $classes = [];
+            }
+        }
+
         return [
             'id' => (int) $user['id'],
             'name' => $user['name'],
@@ -158,6 +193,8 @@ class ApiAuth
             'email' => $user['email'] ?? null,
             'role' => $user['role'],
             'profile_pic_url' => $pic,
+            'classes' => $classes,
+            'class_name' => $classes ? implode(', ', $classes) : null,
         ];
     }
 }

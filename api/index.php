@@ -68,7 +68,7 @@ if ($route === '/auth/login' && $method === 'POST') {
     ApiResponse::success([
         'token' => $token,
         'token_type' => 'Bearer',
-        'user' => ApiAuth::publicUser($user, $baseUrl),
+        'user' => ApiAuth::publicUser($user, $baseUrl, $conn),
     ], 'Login berhasil');
 }
 
@@ -89,7 +89,7 @@ if ($route === '/auth/logout' && $method === 'POST') {
 // ---------------------------------------------------------------------------
 if ($route === '/auth/me' && $method === 'GET') {
     $user = ApiAuth::requireStudent($conn);
-    ApiResponse::success(ApiAuth::publicUser($user, $baseUrl));
+    ApiResponse::success(ApiAuth::publicUser($user, $baseUrl, $conn));
 }
 
 // ---------------------------------------------------------------------------
@@ -138,7 +138,7 @@ if ($route === '/student/dashboard' && $method === 'GET') {
     }
 
     ApiResponse::success([
-        'user' => ApiAuth::publicUser($user, $baseUrl),
+        'user' => ApiAuth::publicUser($user, $baseUrl, $conn),
         'courses' => $courses,
         'pending_assignments' => $pending,
     ]);
@@ -579,7 +579,7 @@ if (preg_match('#^/assignments/(\d+)/submit$#', $route, $m) && $method === 'POST
 // ---------------------------------------------------------------------------
 if ($route === '/profile' && $method === 'GET') {
     $user = ApiAuth::requireStudent($conn);
-    ApiResponse::success(ApiAuth::publicUser($user, $baseUrl));
+    ApiResponse::success(ApiAuth::publicUser($user, $baseUrl, $conn));
 }
 
 // ---------------------------------------------------------------------------
@@ -590,28 +590,29 @@ if ($route === '/profile' && ($method === 'PUT' || $method === 'POST')) {
     $userId = (int) $user['id'];
     $input = api_input();
 
-    $name = trim($input['name'] ?? $user['name']);
-    $username = trim($input['username'] ?? $user['username']);
+    // Profil siswa: nama & NISN tidak diubah dari app (read-only).
+    // Hanya ganti foto dan/atau password.
+    $name = $user['name'];
+    $username = $user['username'];
+    $currentPassword = $input['current_password'] ?? '';
     $newPassword = $input['new_password'] ?? '';
     $confirmPassword = $input['confirm_password'] ?? '';
 
-    if ($name === '' || $username === '') {
-        ApiResponse::error('Nama dan username wajib diisi.', 422);
-    }
-
-    $usernameEsc = $conn->real_escape_string($username);
-    $check = $conn->query("SELECT id FROM users WHERE username = '$usernameEsc' AND id != $userId");
-    if ($check && $check->num_rows > 0) {
-        ApiResponse::error('Username sudah digunakan akun lain.', 409);
-    }
-
     $fields = [];
-    $fields[] = "name = '" . $conn->real_escape_string($name) . "'";
-    $fields[] = "username = '$usernameEsc'";
 
     if ($newPassword !== '') {
+        if ($currentPassword === '') {
+            ApiResponse::error('Masukkan kata sandi saat ini untuk mengganti password.', 422);
+        }
+        $row = $conn->query("SELECT password FROM users WHERE id = $userId LIMIT 1")->fetch_assoc();
+        if (!$row || !password_verify($currentPassword, $row['password'])) {
+            ApiResponse::error('Kata sandi saat ini salah.', 422);
+        }
+        if (strlen($newPassword) < 6) {
+            ApiResponse::error('Kata sandi baru minimal 6 karakter.', 422);
+        }
         if ($newPassword !== $confirmPassword) {
-            ApiResponse::error('Konfirmasi kata sandi tidak sama.', 422);
+            ApiResponse::error('Konfirmasi kata sandi baru tidak sama.', 422);
         }
         $hashed = password_hash($newPassword, PASSWORD_DEFAULT);
         $fields[] = "password = '" . $conn->real_escape_string($hashed) . "'";
@@ -644,13 +645,17 @@ if ($route === '/profile' && ($method === 'PUT' || $method === 'POST')) {
         $fields[] = "profile_pic = '" . $conn->real_escape_string($newFilename) . "'";
     }
 
+    if (empty($fields)) {
+        ApiResponse::error('Tidak ada perubahan yang dikirim.', 422);
+    }
+
     $sql = 'UPDATE users SET ' . implode(', ', $fields) . " WHERE id = $userId";
     if (!$conn->query($sql)) {
         ApiResponse::error('Gagal memperbarui profil: ' . $conn->error, 500);
     }
 
     $fresh = $conn->query("SELECT id, name, username, email, role, profile_pic FROM users WHERE id = $userId")->fetch_assoc();
-    ApiResponse::success(ApiAuth::publicUser($fresh, $baseUrl), 'Profil berhasil diperbarui');
+    ApiResponse::success(ApiAuth::publicUser($fresh, $baseUrl, $conn), 'Profil berhasil diperbarui');
 }
 
 ApiResponse::error('Endpoint tidak ditemukan: ' . $method . ' ' . $route, 404);
