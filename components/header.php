@@ -78,6 +78,9 @@ if(isset($_SESSION['error'])) {
                 <a href="<?php echo BASE_URL; ?>/pages/teacher_grading.php" class="sidebar-link <?php echo strpos($cur, 'teacher_grading') !== false ? 'active' : ''; ?>" title="Penilaian">
                     <i class="uil uil-award"></i> <span>Penilaian</span>
                 </a>
+                <a href="<?php echo BASE_URL; ?>/pages/teacher_grade_recap.php" class="sidebar-link <?php echo strpos($cur, 'teacher_grade_recap') !== false ? 'active' : ''; ?>" title="Rekap Nilai">
+                    <i class="uil uil-chart-line"></i> <span>Rekap Nilai</span>
+                </a>
             </nav>
             <div class="sidebar-footer">
                 <div class="profile-row">
