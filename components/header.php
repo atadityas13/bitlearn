@@ -46,7 +46,7 @@ if(isset($_SESSION['error'])) {
         .swal2-icon.swal2-error .swal2-x-mark-line-right { background-color: #DC2626 !important; }
     </style>
 </head>
-<body class="bg-gradient-mesh<?php echo $is_teacher ? ' admin-body' : ''; ?>">
+<body class="bg-gradient-mesh<?php echo $is_teacher ? ' admin-body' : ''; ?><?php echo !empty($auth_page) ? ' auth-page' : ''; ?>">
 
 <?php if(isset($hide_navbar) && $hide_navbar): ?>
     <!-- Mode Tanpa Navigasi (Untuk Ujian / Viewer Imersif) -->
