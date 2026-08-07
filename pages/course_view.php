@@ -383,7 +383,14 @@ require_once '../components/header.php';
                                 $pic_file = $sp['profile_pic'];
                                 $pic_url = !empty($pic_file) ? BASE_URL . '/uploads/' . $pic_file : 'https://ui-avatars.com/api/?name='.urlencode($sp['name']).'&background=312e81&color=fff';
                             ?>
-                            <div style="display:flex; align-items:center; gap:0.6rem; background:rgba(0,0,0,0.2); padding:0.7rem; border-radius:var(--radius-sm); border:1px solid rgba(255,255,255,0.05); transition:background 0.3s;" onmouseover="this.style.background='rgba(0,0,0,0.4)';" onmouseout="this.style.background='rgba(0,0,0,0.2)';">
+                            <div class="student-progress-row"
+                                role="button"
+                                tabindex="0"
+                                title="Lihat detail progres materi"
+                                data-student-id="<?php echo (int)$sp['id']; ?>"
+                                style="display:flex; align-items:center; gap:0.6rem; background:rgba(0,0,0,0.2); padding:0.7rem; border-radius:var(--radius-sm); border:1px solid rgba(255,255,255,0.05); transition:background 0.3s; cursor:pointer;"
+                                onmouseover="this.style.background='rgba(0,0,0,0.4)';"
+                                onmouseout="this.style.background='rgba(0,0,0,0.2)';">
                                 <img src="<?php echo htmlspecialchars($pic_url); ?>" alt="Avatar" style="width:40px; height:40px; border-radius:50%; object-fit:cover; border:2px solid <?php echo $bar_color; ?>;">
                                 
                                 <div style="flex:1; min-width:0;" title="<?php echo $completed; ?> / <?php echo $all_lesson_count; ?> Topik Diselesaikan">
@@ -402,7 +409,7 @@ require_once '../components/header.php';
                                     </div>
                                 </div>
 
-                                <div style="display:flex; flex-direction:column; gap:0.25rem;">
+                                <div class="student-row-actions" style="display:flex; flex-direction:column; gap:0.25rem;">
                                     <form action="../actions/reset_student_progress.php" method="POST" style="margin:0;"
                                         data-confirm="Reset semua progres materi, kuis, dan pengumpulan tugas siswa ini pada course ini?">
                                         <input type="hidden" name="course_id" value="<?php echo $course_id; ?>">
@@ -481,6 +488,19 @@ require_once '../components/header.php';
     </div>
 </div>
 </div>
+<!-- Modal DETAIL PROGRES SISWA -->
+<div id="modalStudentProgress" class="modal-overlay">
+    <div class="modal-box" style="max-width:560px; max-height:85vh; display:flex; flex-direction:column;">
+        <div class="modal-header">
+            <h3 style="margin:0;"><i class="uil uil-clipboard-notes"></i> Detail Progres Siswa</h3>
+            <button type="button" onclick="document.getElementById('modalStudentProgress').classList.remove('active')" class="btn-close"><i class="uil uil-times"></i></button>
+        </div>
+        <div id="studentProgressBody" style="overflow-y:auto; flex:1; padding:0.25rem 0.15rem 0.5rem;">
+            <div style="text-align:center; padding:2rem; color:var(--text-muted);">Memuat...</div>
+        </div>
+    </div>
+</div>
+
 <!-- Hidden Form & JS Handler for Edit Module -->
 <form id="formEditModule" action="../actions/edit_module.php" method="POST" style="display:none;">
     <input type="hidden" name="course_id" value="<?php echo $course_id; ?>">
@@ -496,9 +516,134 @@ require_once '../components/header.php';
 </form>
 
 <script>
+const COURSE_ID_PROGRESS = <?php echo (int)$course_id; ?>;
+
+document.querySelectorAll('.student-progress-row').forEach(function(row) {
+    row.addEventListener('click', function(e) {
+        if (e.target.closest('.student-row-actions')) return;
+        const sid = parseInt(row.getAttribute('data-student-id'), 10);
+        if (sid) openStudentProgress(sid);
+    });
+    row.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            const sid = parseInt(row.getAttribute('data-student-id'), 10);
+            if (sid) openStudentProgress(sid);
+        }
+    });
+});
+
 window.onclick = function(event) {
     if (event.target.classList.contains('modal-overlay')) {
         event.target.classList.remove('active');
+    }
+}
+
+function escapeHtml(str) {
+    return String(str ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+}
+
+function lessonTypeIcon(type) {
+    if (type === 'quiz') return 'uil-question-circle';
+    if (type === 'video_embed') return 'uil-play-circle';
+    if (type === 'document_upload') return 'uil-file-alt';
+    return 'uil-book-open';
+}
+
+async function openStudentProgress(studentId) {
+    const modal = document.getElementById('modalStudentProgress');
+    const body = document.getElementById('studentProgressBody');
+    modal.classList.add('active');
+    body.innerHTML = '<div style="text-align:center; padding:2rem; color:var(--text-muted);"><i class="uil uil-spinner-alt" style="font-size:1.6rem;"></i><div style="margin-top:0.6rem;">Memuat detail progres...</div></div>';
+
+    try {
+        const res = await fetch('../actions/student_lesson_progress.php?course_id=' + COURSE_ID_PROGRESS + '&student_id=' + studentId, {
+            credentials: 'same-origin',
+            headers: { 'Accept': 'application/json' }
+        });
+        const json = await res.json();
+        if (!json.success || !json.data) {
+            body.innerHTML = '<div style="text-align:center; padding:2rem; color:var(--danger);">' + escapeHtml(json.message || 'Gagal memuat data.') + '</div>';
+            return;
+        }
+
+        const d = json.data;
+        const pct = d.percent || 0;
+        let barColor = 'var(--danger)';
+        if (pct >= 40) barColor = 'var(--warning)';
+        if (pct >= 80) barColor = 'var(--secondary)';
+        if (pct === 100) barColor = 'var(--primary)';
+
+        let html = `
+            <div style="margin-bottom:1rem; padding:0.9rem 1rem; background:rgba(0,0,0,0.2); border-radius:var(--radius-sm); border:1px solid rgba(255,255,255,0.06);">
+                <div style="display:flex; justify-content:space-between; gap:0.8rem; align-items:flex-start;">
+                    <div>
+                        <strong style="font-size:1.05rem; color:var(--text-main);">${escapeHtml(d.student.name)}</strong>
+                        <div style="color:var(--text-muted); font-size:0.8rem; margin-top:0.15rem;">NISN: ${escapeHtml(d.student.username)}</div>
+                    </div>
+                    <div style="text-align:right;">
+                        <div style="font-size:1.25rem; font-weight:800; color:${barColor};">${pct}%</div>
+                        <div style="font-size:0.75rem; color:var(--text-muted);">${d.completed} / ${d.total} materi</div>
+                    </div>
+                </div>
+                <div style="margin-top:0.7rem; width:100%; height:8px; background:rgba(255,255,255,0.12); border-radius:10px; overflow:hidden;">
+                    <div style="width:${pct}%; height:100%; background:${barColor}; border-radius:10px;"></div>
+                </div>
+                <div style="display:flex; gap:1rem; margin-top:0.7rem; font-size:0.78rem; color:var(--text-muted);">
+                    <span><i class="uil uil-check-circle" style="color:#10b981;"></i> Selesai</span>
+                    <span><i class="uil uil-times-circle" style="color:#ef4444;"></i> Belum</span>
+                </div>
+            </div>
+        `;
+
+        if (!d.modules || d.modules.length === 0) {
+            html += '<div style="text-align:center; padding:1.5rem; color:var(--text-muted);">Belum ada materi pada course ini.</div>';
+        } else {
+            d.modules.forEach(mod => {
+                const lessons = mod.lessons || [];
+                const modDone = lessons.filter(l => l.completed).length;
+                html += `
+                    <div style="margin-bottom:0.9rem;">
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.45rem; padding:0 0.15rem;">
+                            <strong style="font-size:0.88rem; color:var(--text-main);"><i class="uil uil-folder" style="color:var(--primary);"></i> ${escapeHtml(mod.title)}</strong>
+                            <span style="font-size:0.75rem; color:var(--text-muted);">${modDone}/${lessons.length}</span>
+                        </div>
+                        <ul style="list-style:none; padding:0; margin:0; display:flex; flex-direction:column; gap:0.35rem;">
+                `;
+                if (lessons.length === 0) {
+                    html += '<li style="padding:0.55rem 0.75rem; color:var(--text-muted); font-size:0.85rem; background:rgba(0,0,0,0.15); border-radius:8px;">Belum ada materi di bab ini.</li>';
+                } else {
+                    lessons.forEach(les => {
+                        const ok = !!les.completed;
+                        const icon = ok ? 'uil-check-circle' : 'uil-times-circle';
+                        const color = ok ? '#10b981' : '#ef4444';
+                        const bg = ok ? 'rgba(16,185,129,0.08)' : 'rgba(239,68,68,0.06)';
+                        const border = ok ? 'rgba(16,185,129,0.22)' : 'rgba(239,68,68,0.18)';
+                        html += `
+                            <li style="display:flex; align-items:center; gap:0.65rem; padding:0.55rem 0.75rem; background:${bg}; border:1px solid ${border}; border-radius:8px;">
+                                <i class="uil ${icon}" style="color:${color}; font-size:1.25rem; flex-shrink:0;"></i>
+                                <div style="flex:1; min-width:0;">
+                                    <div style="font-size:0.88rem; color:var(--text-main); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
+                                        <i class="uil ${lessonTypeIcon(les.content_type)}" style="opacity:0.7; margin-right:0.2rem;"></i>${escapeHtml(les.title)}
+                                    </div>
+                                    <div style="font-size:0.72rem; color:var(--text-muted);">${ok ? 'Sudah diselesaikan' : 'Belum diselesaikan'}</div>
+                                </div>
+                            </li>
+                        `;
+                    });
+                }
+                html += '</ul></div>';
+            });
+        }
+
+        body.innerHTML = html;
+    } catch (err) {
+        body.innerHTML = '<div style="text-align:center; padding:2rem; color:var(--danger);">Gagal memuat detail progres.</div>';
     }
 }
 
