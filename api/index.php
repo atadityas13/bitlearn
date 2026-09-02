@@ -112,10 +112,10 @@ if ($route === '/student/dashboard' && $method === 'GET') {
     $studentId = (int) $user['id'];
     $clientVersion = AppVersion::readClientVersionCode();
 
-    // Hanya untuk app lama (tanpa manajemen update di splash)
+    // App lama tidak mem-parse HTTP 426 — kirim 200 + success:false agar pesan terbaca.
     $legacyBlock = AppVersion::dashboardBlockNotice($conn, $clientVersion);
     if ($legacyBlock !== null) {
-        ApiResponse::error($legacyBlock['message'], 426, ['app_update' => $legacyBlock]);
+        ApiResponse::error($legacyBlock['message'], 200, ['app_update' => $legacyBlock]);
     }
 
     $courses = [];

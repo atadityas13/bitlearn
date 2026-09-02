@@ -119,10 +119,15 @@ class AppVersion
             return null;
         }
 
+        $url = trim((string)($check['update_url'] ?? self::DEFAULT_PLAY_URL));
+        if ($url === '') {
+            $url = self::DEFAULT_PLAY_URL;
+        }
+
         return [
             'blocked' => true,
-            'message' => 'Tidak dapat menampilkan course, silahkan update aplikasi ke versi terbaru di Play Store.',
-            'update_url' => $check['update_url'],
+            'message' => 'Tidak dapat menampilkan course, silahkan update aplikasi ke versi terbaru di Play Store.' . "\n" . $url,
+            'update_url' => $url,
             'latest_version_name' => $check['latest_version_name'],
             'latest_version_code' => $latest,
             'current_version_code' => $clientCode,
