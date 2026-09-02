@@ -39,6 +39,18 @@ if ($route === '/' || $route === '') {
 }
 
 // ---------------------------------------------------------------------------
+// GET /app/version — cek update aplikasi mobile (publik)
+// ---------------------------------------------------------------------------
+if ($route === '/app/version' && $method === 'GET') {
+    $platform = strtolower(trim($_GET['platform'] ?? 'android'));
+    if ($platform !== 'android') {
+        $platform = 'android';
+    }
+    $versionCode = isset($_GET['version_code']) ? (int)$_GET['version_code'] : 0;
+    ApiResponse::success(AppVersion::checkUpdate($conn, $platform, $versionCode));
+}
+
+// ---------------------------------------------------------------------------
 // POST /auth/login
 // ---------------------------------------------------------------------------
 if ($route === '/auth/login' && $method === 'POST') {
@@ -98,6 +110,13 @@ if ($route === '/auth/me' && $method === 'GET') {
 if ($route === '/student/dashboard' && $method === 'GET') {
     $user = ApiAuth::requireStudent($conn);
     $studentId = (int) $user['id'];
+    $clientVersion = AppVersion::readClientVersionCode();
+
+    // Hanya untuk app lama (tanpa manajemen update di splash)
+    $legacyBlock = AppVersion::dashboardBlockNotice($conn, $clientVersion);
+    if ($legacyBlock !== null) {
+        ApiResponse::error($legacyBlock['message'], 426, ['app_update' => $legacyBlock]);
+    }
 
     $courses = [];
     $courseRes = $conn->query(StudentAccess::accessibleCoursesSql($studentId, $conn));

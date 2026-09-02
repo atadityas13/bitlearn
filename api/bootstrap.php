@@ -29,7 +29,7 @@ set_error_handler(static function (int $severity, string $message, string $file,
 });
 
 header('Access-Control-Allow-Origin: *');
-header('Access-Control-Allow-Headers: Authorization, Content-Type, Accept');
+header('Access-Control-Allow-Headers: Authorization, Content-Type, Accept, X-App-Version-Code, X-App-Update-Managed');
 header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
 
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
@@ -40,6 +40,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 require_once __DIR__ . '/../core/config.php';
 require_once __DIR__ . '/../core/CourseStudents.php';
 require_once __DIR__ . '/../core/LessonSettings.php';
+require_once __DIR__ . '/../core/AppVersion.php';
 require_once __DIR__ . '/lib/Response.php';
 require_once __DIR__ . '/lib/Auth.php';
 require_once __DIR__ . '/lib/StudentAccess.php';
@@ -56,6 +57,12 @@ try {
 
 try {
     LessonSettings::ensureDwellColumn($conn);
+} catch (Throwable $e) {
+    // non-fatal
+}
+
+try {
+    AppVersion::ensureTable($conn);
 } catch (Throwable $e) {
     // non-fatal
 }

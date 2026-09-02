@@ -81,6 +81,9 @@ if(isset($_SESSION['error'])) {
                 <a href="<?php echo BASE_URL; ?>/pages/teacher_grade_recap.php" class="sidebar-link <?php echo strpos($cur, 'teacher_grade_recap') !== false ? 'active' : ''; ?>" title="Rekap Nilai">
                     <i class="uil uil-chart-line"></i> <span>Rekap Nilai</span>
                 </a>
+                <a href="<?php echo BASE_URL; ?>/pages/manage_app_update.php" class="sidebar-link <?php echo strpos($cur, 'manage_app_update') !== false ? 'active' : ''; ?>" title="Update Aplikasi">
+                    <i class="uil uil-mobile-android"></i> <span>Update App</span>
+                </a>
             </nav>
             <div class="sidebar-footer">
                 <div class="profile-row">
